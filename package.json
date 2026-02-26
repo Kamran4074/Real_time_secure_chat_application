@@ -1,0 +1,24 @@
+{
+  "name": "real_time_secure_chat_application",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon backend/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.1.0",
+    "mongoose": "^9.2.1",
+    "nodemon": "^3.1.14",
+    "socket.io": "^4.8.3"
+  }
+}
