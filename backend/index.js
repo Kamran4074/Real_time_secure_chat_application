@@ -3,12 +3,16 @@ import dotenv from "dotenv";
 import dbConnect from "./DB/dbConnect.js";
 import authRouter from './route/authUser.js'
 import messageRouter from './route/messageRoute.js'
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());                // Must come BEFORE routes
+app.use(cookieParser());
+
+
 app.use('/api/auth', authRouter);       // Now this can read JSON
 app.use('/api/message', messageRouter); // This too
 

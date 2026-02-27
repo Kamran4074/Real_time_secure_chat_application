@@ -13,7 +13,7 @@ const messageSchema = mongoose.Schema({
         required:true
     },
     message:{
-        type:"String",
+        type:String,
         required:true
     },
     conversationId:{
@@ -21,7 +21,7 @@ const messageSchema = mongoose.Schema({
         ref:"Conversation",
         default:[]
     }
-},{Timestamp:true});
+},{timestamps:true});
 
 const Message = mongoose.model('Message',messageSchema);
 export default Message;

@@ -12,14 +12,14 @@ const conversationSchema = mongoose.Schema({
         }
     ],
     //storing message id
-    messages:[
-        {
+    messages:{
+        type:[{
             type:mongoose.Schema.Types.ObjectId,
-            ref:'Message',
-            default:[]  //if no message is there
-        }
-    ]
-},{Timestamp:true});
+            ref:'Message'
+        }],
+        default:[]  //if no message is there
+    }
+},{timestamps:true});
 
 //creating model in data base 
 const Conversation = mongoose.model('Conversation',conversationSchema);
