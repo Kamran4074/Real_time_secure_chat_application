@@ -1,6 +1,10 @@
 import Conversation from "../Models/conversationModels.js";
 import Message from "../Models/messageScema.js";
 
+//------------------------
+//send message loggic
+//------------------------
+
 export const sendMessage =async(req,res)=>{
     try {
         const {message} = req.body;
@@ -35,7 +39,33 @@ export const sendMessage =async(req,res)=>{
         console.log('Error in sendMessage:', error);
         res.status(500).send({
             success: false,
-            message: error.message || 'Message route controller error'
+            message: error.message || 'sendMessage route controller error'
+        });
+    }
+}
+
+//------------------------
+//recieve message loggic
+//------------------------
+
+export const getMessages = async(req,res)=>{
+    try {
+        const {id:recieversId}= req.params;
+        const sendersId= req.user._id;
+        
+        const chats = await Conversation.findOne({
+            participants:{$all:[sendersId,recieversId]}
+        }).populate("messages");
+
+        if(!chats) return res.status(200).send([]);
+        const message = chats.messages;
+        res.status(200).send(message);
+
+    } catch (error) {
+        console.log('Error in getMessage:', error);
+        res.status(500).send({
+            success: false,
+            message: error.message || 'getMessage route controller error'
         });
     }
 }
