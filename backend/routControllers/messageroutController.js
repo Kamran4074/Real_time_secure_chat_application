@@ -1,71 +1,72 @@
 import Conversation from "../Models/conversationModels.js";
 import Message from "../Models/messageScema.js";
-
-//------------------------
-//send message loggic
-//------------------------
+import { getReceiverSocketId, io } from "../socket/socket.js";
 
 export const sendMessage =async(req,res)=>{
-    try {
-        const {message} = req.body;
-        const {id:recieversId}= req.params;
-        const sendersId= req.user._id;
+try {
+    const {messages} = req.body;
+    const {id:receiverId} = req.params;
+    const senderId = req.user._id;
 
-        let chats = await Conversation.findOne({
-            participants:{$all:[sendersId,recieversId]}
+
+    let chats = await Conversation.findOne({
+        participants:{$all:[senderId , receiverId]}
+    })
+
+    if(!chats){
+        chats = await Conversation.create({
+            participants:[senderId , receiverId],
         })
-
-        if(!chats){
-            chats = await Conversation.create({
-                participants:[sendersId,recieversId],
-            })
-        }
-        
-        const newMessages = new Message({
-            senderId: sendersId,
-            recieverId: recieversId,
-            message,
-            conversationId:chats._id
-        })
-
-        if(newMessages){
-            chats.messages.push(newMessages._id);
-        }
-
-        //Socket.IO function from here
-        await Promise.all([chats.save(),newMessages.save()]);
-        res.status(201).send(newMessages);
-    } catch (error) {
-        console.log('Error in sendMessage:', error);
-        res.status(500).send({
-            success: false,
-            message: error.message || 'sendMessage route controller error'
-        });
     }
+
+    const newMessages = new Message({
+        senderId,
+        recieverId: receiverId,
+        message: messages,
+        conversationId: chats._id
+    })
+
+    if(newMessages){
+        chats.messages.push(newMessages._id);
+    }
+
+    await Promise.all([chats.save(),newMessages.save()]);
+
+     //SOCKET.IO function 
+     const receiverSocketId = getReceiverSocketId(receiverId);
+     if(receiverSocketId){
+        io.to(receiverSocketId).emit("newMessage",newMessages)
+     }
+
+    res.status(201).send(newMessages)
+
+} catch (error) {
+    res.status(500).send({
+        success: false,
+        message: error
+    })
+    console.log(`error in sendMessage ${error}`);
+}
 }
 
-//------------------------
-//recieve message loggic
-//------------------------
 
-export const getMessages = async(req,res)=>{
-    try {
-        const {id:recieversId}= req.params;
-        const sendersId= req.user._id;
-        
-        const chats = await Conversation.findOne({
-            participants:{$all:[sendersId,recieversId]}
-        }).populate("messages");
+export const getMessages=async(req,res)=>{
+try {
+    const {id:receiverId} = req.params;
+    const senderId = req.user._id;
 
-        if(!chats) return res.status(200).send([]);
-        const message = chats.messages;
-        res.status(200).send(message);
+    const chats = await Conversation.findOne({
+        participants:{$all:[senderId , receiverId]}
+    }).populate("messages")
 
-    } catch (error) {
-        console.log('Error in getMessage:', error);
-        res.status(500).send({
-            success: false,
-            message: error.message || 'getMessage route controller error'
-        });
-    }
+    if(!chats)  return res.status(200).send([]);
+    const message = chats.messages;
+    res.status(200).send(message)
+} catch (error) {
+    res.status(500).send({
+        success: false,
+        message: error
+    })
+    console.log(`error in getMessage ${error}`);
+}
 }
