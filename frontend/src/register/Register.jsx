@@ -25,7 +25,7 @@ console.log(inputData);
     const handelSubmit=async(e)=>{
         e.preventDefault();
         setLoading(true)
-        if(inputData.password !== inputData.confpassword.toLowerCase()){
+        if(inputData.password !== inputData.confpassword){
             setLoading(false)
             return toast.error("Password Dosen't match")
         }
@@ -151,7 +151,7 @@ console.log(inputData);
                     <div className='pt-2'>
                         <p className='text-sm font-semibold
                          text-gray-800'>
-                            Dont have an Acount ? <Link to={'/login'}>
+                            Already have an Account ? <Link to={'/login'}>
                                 <span
                                     className='text-gray-950 
                             font-bold underline cursor-pointer

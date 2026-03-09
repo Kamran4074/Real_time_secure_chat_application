@@ -14,16 +14,16 @@ export const SocketContextProvider=({children})=>{
     const {authUser} = useAuth();
     useEffect(()=>{
         if(authUser){
-            const socket = io("https://slrtech-chatapp.onrender.com/",{
+            const newSocket = io("http://localhost:3000",{
                 query:{
                     userId:authUser?._id,
                 }
             })
-            socket.on("getOnlineUsers",(users)=>{
+            newSocket.on("getOnlineUsers",(users)=>{
                 setOnlineUser(users)
             });
-            setSocket(socket);
-            return()=>socket.close();
+            setSocket(newSocket);
+            return()=>newSocket.close();
         }else{
             if(socket){
                 socket.close();
