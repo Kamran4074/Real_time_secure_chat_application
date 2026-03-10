@@ -8,9 +8,6 @@ import jwtToken from "../utils/jwtwebTokens.js";
 //----------------------
 export const userRegister = async(req, res)=>{
     try {
-        console.log('Request body:', req.body); // Debug log
-        console.log('Content-Type:', req.headers['content-type']); // Debug log
-        
         const{fullname,username,email,gender,password,profilepic} = req.body;
         
         // Validate required fields
@@ -18,18 +15,30 @@ export const userRegister = async(req, res)=>{
             return res.status(400).send({success:false, message:"All fields are required"});
         }
         
-        //check weather there is user present or not
-        const user = await User.findOne({$or: [{username}, {email}]});
+        //check weather there is user present or not (case-insensitive)
+        const user = await User.findOne({
+            $or: [
+                {username: {$regex: new RegExp(`^${username}$`, 'i')}}, 
+                {email: {$regex: new RegExp(`^${email}$`, 'i')}}
+            ]
+        });
 
         // if user present
-        if(user) return res.status(400).send({success:false,message:"userName or Email Already exist"});
+        if(user) {
+            if(user.username.toLowerCase() === username.toLowerCase()){
+                return res.status(400).send({success:false, message:"Username already exists"});
+            }
+            if(user.email.toLowerCase() === email.toLowerCase()){
+                return res.status(400).send({success:false, message:"Email already exists"});
+            }
+        }
 
         //hash password
         const hashPassword = bcryptjs.hashSync(password,10);
 
         //profile pic
-        const profileBoy = profilepic ||`https://avatar.iran.liara.run/public/boy?username=${username}`;
-        const profileGirl = profilepic ||`https://avatar.iran.liara.run/public/girl?username=${username}`;
+        const profileBoy = profilepic || `https://avatar.iran.liara.run/public?username=${username}`;
+        const profileGirl = profilepic || `https://avatar.iran.liara.run/public?username=${username}`;
 
         //saving user in database
         const newUser = new User({
@@ -72,14 +81,13 @@ export const userRegister = async(req, res)=>{
 //---------------------
 //login loggic
 //---------------------
-export const userLogin = async(req,res)=>{ // making it async because if we havent register how could we login
+export const userLogin = async(req,res)=>{ 
     try {
-        //we can login with email or username because that are unique
         const{email,password} = req.body;
-        const user = await User.findOne({email});
-        if(!user) return res.status(500).send({success:false,message:"Email doesn't exist"});
+        const user = await User.findOne({email: {$regex: new RegExp(`^${email}$`, 'i')}});
+        if(!user) return res.status(400).send({success:false,message:"Email doesn't exist"});
         const comparePass = bcryptjs.compareSync(password,user.password || "");
-        if(!comparePass) return res.status(500).send({success:false,message:"Email/password does not match"});
+        if(!comparePass) return res.status(400).send({success:false,message:"Email/password does not match"});
 
         //jwt token is is added while login
         jwtToken(user._id,res); 

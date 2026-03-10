@@ -19,3 +19,7 @@ Thumbs.db
 # Build files
 dist/
 build/
+
+# Documentation (local planning files)
+*.md
+!README.md
