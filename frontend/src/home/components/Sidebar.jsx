@@ -94,9 +94,8 @@ const Sidebar = ({ onSelectUser }) => {
 
     //logout
     const handelLogOut = async () => {
-
-        const confirmlogout = window.prompt("type 'UserName' To LOGOUT");
-        if (confirmlogout === authUser.username) {
+        const confirmLogout = window.confirm("Do you want to logout?");
+        if (confirmLogout) {
             setLoading(true)
             try {
                 const logout = await axios.post('/api/auth/logout')
@@ -114,14 +113,11 @@ const Sidebar = ({ onSelectUser }) => {
                 setLoading(false)
                 console.log(error);
             }
-        } else {
-            toast.info("LogOut Cancelled")
         }
-
     }
 
     return (
-        <div className='h-full w-auto px-1'>
+        <div className='h-full w-auto px-1 flex flex-col'>
             <div className='flex justify-between gap-2'>
                 <form onSubmit={handelSearchSubmit} className='w-auto flex items-center justify-between bg-white rounded-full '>
                     <input
@@ -136,14 +132,14 @@ const Sidebar = ({ onSelectUser }) => {
                     </button>
                 </form>
                 <img
-                    onClick={() => navigate(`/profile/${authUser?._id}`)}
+                    onClick={() => navigate('/')}
                     src={authUser?.profilepic}
-                    className='self-center h-12 w-12 hover:scale-110 cursor-pointer' />
+                    className='self-center h-12 w-12 hover:scale-110 cursor-pointer rounded-full' />
             </div>
             <div className='divider px-3'></div>
             {searchUser?.length > 0 ? (
                 <>
-                    <div className="min-h-[70%] max-h-[80%] m overflow-y-auto scrollbar ">
+                    <div className="flex-1 overflow-y-auto scrollbar">
                         <div className='w-auto'>
                             {searchUser.map((user, index) => (
                                 <div key={user._id}>
@@ -157,7 +153,13 @@ const Sidebar = ({ onSelectUser }) => {
                                         {/*Socket is Online*/}
                                         <div className={`avatar ${isOnline[index] ? 'online':''}`}>
                                             <div className="w-12 rounded-full">
-                                                <img src={user.profilepic} alt='user.img' />
+                                                <img 
+                                                    src={user.profilepic || `https://avatar.iran.liara.run/public?username=${user.username}`} 
+                                                    alt='user.img'
+                                                    onError={(e) => {
+                                                        e.target.src = `https://ui-avatars.com/api/?name=${user.username}&background=random`;
+                                                    }}
+                                                />
                                             </div>
                                         </div>
                                         <div className='flex flex-col flex-1'>
@@ -170,16 +172,16 @@ const Sidebar = ({ onSelectUser }) => {
                             )}
                         </div>
                     </div>
-                    <div className='mt-auto px-1 py-1 flex'>
-                        <button onClick={handSearchback} className='bg-white rounded-full px-2 py-1 self-center'>
+                    <div className='px-1 py-2 flex gap-2 items-center border-t border-gray-600'>
+                        <button onClick={handSearchback} className='bg-white rounded-full px-2 py-1'>
                             <IoArrowBackSharp size={25} />
                         </button>
-
+                        <p className='text-sm'>Back</p>
                     </div>
                 </>
             ) : (
                 <>
-                    <div className="min-h-[70%] max-h-[80%] m overflow-y-auto scrollbar ">
+                    <div className="flex-1 overflow-y-auto scrollbar">
                         <div className='w-auto'>
                             {chatUser.length === 0 ? (
                                 <>
@@ -203,14 +205,20 @@ const Sidebar = ({ onSelectUser }) => {
                                                 {/*Socket is Online*/}
                                                 <div className={`avatar ${isOnline[index] ? 'online':''}`}>
                                                     <div className="w-12 rounded-full">
-                                                        <img src={user.profilepic} alt='user.img' />
+                                                        <img 
+                                                            src={user.profilepic || `https://avatar.iran.liara.run/public?username=${user.username}`} 
+                                                            alt='user.img'
+                                                            onError={(e) => {
+                                                                e.target.src = `https://ui-avatars.com/api/?name=${user.username}&background=random`;
+                                                            }}
+                                                        />
                                                     </div>
                                                 </div>
                                                 <div className='flex flex-col flex-1'>
                                                     <p className='font-bold text-gray-950'>{user.username}</p>
                                                 </div>
                                                     <div>
-                                                        { newMessageUsers.reciverId === authUser._id && newMessageUsers.senderId === user._id ?
+                                                        { newMessageUsers?.reciverId === authUser._id && newMessageUsers?.senderId === user._id ?
                                                     <div className="rounded-full bg-green-700 text-sm text-white px-[4px]">+1</div>:<></>
                                                         }
                                                     </div>
@@ -223,11 +231,11 @@ const Sidebar = ({ onSelectUser }) => {
                             )}
                         </div>
                     </div>
-                    <div className='mt-auto px-1 py-1 flex'>
-                        <button onClick={handelLogOut} className='hover:bg-red-600  w-10 cursor-pointer hover:text-white rounded-lg'>
+                    <div className='px-1 py-2 flex gap-2 items-center border-t border-gray-600'>
+                        <button onClick={handelLogOut} className='bg-sky-600 hover:bg-red-600 p-2 cursor-pointer text-white rounded-lg transition-colors'>
                             <BiLogOut size={25} />
                         </button>
-                        <p className='text-sm py-1'>Logout</p>
+                        <p className='text-sm font-semibold text-gray-950'>Logout</p>
                     </div>
                 </>
             )}
