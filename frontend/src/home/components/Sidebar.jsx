@@ -18,7 +18,7 @@ const Sidebar = ({ onSelectUser }) => {
     const [chatUser, setChatUser] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedUserId, setSetSelectedUserId] = useState(null);
-    const [newMessageUsers, setNewMessageUsers] = useState('');
+    const [unreadMessages, setUnreadMessages] = useState({});
     const {messages , setMessage, selectedConversation ,  setSelectedConversation} = userConversation();
     const { onlineUser , socket} = useSocketContext();
 
@@ -28,10 +28,16 @@ const Sidebar = ({ onSelectUser }) => {
 
     useEffect(()=>{
         socket?.on("newMessage",(newMessage)=>{
-            setNewMessageUsers(newMessage)
+            // Only count if message is not from selected conversation
+            if(newMessage.senderId !== selectedUserId) {
+                setUnreadMessages(prev => ({
+                    ...prev,
+                    [newMessage.senderId]: (prev[newMessage.senderId] || 0) + 1
+                }));
+            }
         })
         return ()=> socket?.off("newMessage");
-    },[socket,messages])
+    },[socket,messages,selectedUserId])
 
     //show user with u chatted
     useEffect(() => {
@@ -83,7 +89,11 @@ const Sidebar = ({ onSelectUser }) => {
         onSelectUser(user);
         setSelectedConversation(user);
         setSetSelectedUserId(user._id);
-        setNewMessageUsers('')
+        // Clear unread count for this user
+        setUnreadMessages(prev => ({
+            ...prev,
+            [user._id]: 0
+        }));
     }
 
     //back from search result
@@ -217,11 +227,16 @@ const Sidebar = ({ onSelectUser }) => {
                                                 <div className='flex flex-col flex-1'>
                                                     <p className='font-bold text-gray-950'>{user.username}</p>
                                                 </div>
-                                                    <div>
-                                                        { newMessageUsers?.reciverId === authUser._id && newMessageUsers?.senderId === user._id ?
-                                                    <div className="rounded-full bg-green-700 text-sm text-white px-[4px]">+1</div>:<></>
-                                                        }
-                                                    </div>
+                                                <div>
+                                                    {unreadMessages[user._id] > 0 && (
+                                                        <div className="rounded-full bg-green-600 text-sm text-white px-2 py-1 font-semibold min-w-[28px] text-center">
+                                                            {unreadMessages[user._id] <= 4 
+                                                                ? `${unreadMessages[user._id]} ${unreadMessages[user._id] === 1 ? 'message' : 'messages'}`
+                                                                : `+${unreadMessages[user._id]} messages`
+                                                            }
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className='divider divide-solid px-3 h-[1px]'></div>
                                         </div>
