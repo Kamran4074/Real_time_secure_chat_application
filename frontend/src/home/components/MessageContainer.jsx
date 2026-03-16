@@ -9,22 +9,54 @@ import notify from '../../assets/sound/notification.mp3';
 
 const MessageContainer = ({ onBackUser }) => {
     const { messages, selectedConversation, setMessage, setSelectedConversation } = userConversation();
-    const {socket} = useSocketContext();
+    const {socket, onlineUser} = useSocketContext();
     const { authUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [sending , setSending] = useState(false);
-    const [sendData , setSnedData] = useState("")
+    const [sendData , setSendData] = useState("")
+    const [isTyping, setIsTyping] = useState(false);
     const lastMessageRef = useRef();
+    const typingTimeoutRef = useRef(null);
+
+    const isOnline = onlineUser.includes(selectedConversation?._id);
 
     useEffect(()=>{
-      socket?.on("newMessage",(newMessage)=>{
-        const sound = new Audio(notify);
-        sound.play();
-        setMessage([...messages,newMessage])
-      })
+      const handleNewMessage = (newMessage)=>{
+        // Only add message if it's for the current conversation
+        if(selectedConversation?._id === newMessage.senderId || selectedConversation?._id === newMessage.recieverId){
+          const sound = new Audio(notify);
+          sound.play();
+          setMessage([...messages,newMessage])
+        }
+      }
 
-      return ()=> socket?.off("newMessage");
-    },[socket,setMessage,messages])
+      socket?.on("newMessage", handleNewMessage)
+
+      return ()=> socket?.off("newMessage", handleNewMessage);
+    },[socket,setMessage,messages,selectedConversation])
+
+    // Listen for typing events
+    useEffect(()=>{
+      const handleUserTyping = ({senderId}) => {
+        if(senderId === selectedConversation?._id){
+          setIsTyping(true);
+        }
+      };
+
+      const handleUserStoppedTyping = ({senderId}) => {
+        if(senderId === selectedConversation?._id){
+          setIsTyping(false);
+        }
+      };
+
+      socket?.on("userTyping", handleUserTyping);
+      socket?.on("userStoppedTyping", handleUserStoppedTyping);
+
+      return ()=> {
+        socket?.off("userTyping", handleUserTyping);
+        socket?.off("userStoppedTyping", handleUserStoppedTyping);
+      };
+    },[socket, selectedConversation])
 
     useEffect(()=>{
         setTimeout(()=>{
@@ -53,14 +85,35 @@ const MessageContainer = ({ onBackUser }) => {
 
         if (selectedConversation?._id) getMessages();
     }, [selectedConversation?._id, setMessage])
-    console.log(messages);
 
     const handelMessages=(e)=>{
-        setSnedData(e.target.value)
+        setSendData(e.target.value)
+        
+        // Emit typing event
+        if(e.target.value.length > 0 && selectedConversation?._id){
+          socket?.emit('typing', {receiverId: selectedConversation._id});
+          
+          // Clear previous timeout
+          if(typingTimeoutRef.current){
+            clearTimeout(typingTimeoutRef.current);
+          }
+          
+          // Stop typing after 2 seconds of inactivity
+          typingTimeoutRef.current = setTimeout(()=>{
+            socket?.emit('stopTyping', {receiverId: selectedConversation._id});
+          }, 2000);
+        }
       }
 
     const handelSubmit=async(e)=>{
         e.preventDefault();
+        
+        // Stop typing indicator when sending
+        socket?.emit('stopTyping', {receiverId: selectedConversation._id});
+        if(typingTimeoutRef.current){
+          clearTimeout(typingTimeoutRef.current);
+        }
+        
         setSending(true);
         try {
             const res =await axios.post(`/api/message/send/${selectedConversation?._id}`,{messages:sendData});
@@ -70,7 +123,7 @@ const MessageContainer = ({ onBackUser }) => {
                 console.log(data.message);
             }
             setSending(false);
-            setSnedData('')
+            setSendData('')
             setMessage([...messages,data])
         } catch (error) {
             setSending(false);
@@ -100,12 +153,30 @@ const MessageContainer = ({ onBackUser }) => {
                   </button>
                 </div>
                 <div className='flex justify-between mr-2 gap-2'>
-                  <div className='self-center'>
-                    <img className='rounded-full w-6 h-6 md:w-10 md:h-10 cursor-pointer' src={selectedConversation?.profilepic} />
+                  <div className={`avatar ${isOnline ? 'online' : 'offline'}`}>
+                    <div className='w-6 h-6 md:w-10 md:h-10 rounded-full'>
+                      <img 
+                        className='rounded-full w-full h-full cursor-pointer' 
+                        src={selectedConversation?.profilepic || `https://avatar.iran.liara.run/public?username=${selectedConversation?.username}`}
+                        alt='user avatar'
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${selectedConversation?.username}&background=random`;
+                        }}
+                      />
+                    </div>
                   </div>
-                  <span className='text-gray-950 self-center text-sm md:text-xl font-bold'>
-                    {selectedConversation?.username}
-                  </span>
+                  <div className='flex flex-col justify-center'>
+                    <span className='text-gray-950 self-center text-sm md:text-xl font-bold'>
+                      {selectedConversation?.username}
+                    </span>
+                    {isTyping ? (
+                      <span className='text-xs text-blue-900 font-semibold underline decoration-blue-900'>typing...</span>
+                    ) : isOnline ? (
+                      <span className='text-xs text-green-900 font-semibold'>online</span>
+                    ) : (
+                      <span className='text-xs text-gray-700'>offline</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
