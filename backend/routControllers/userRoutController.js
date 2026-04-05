@@ -62,6 +62,9 @@ export const userRegister = async(req, res)=>{
                 email:newUser.email,
                 token
             })
+        } else {
+            res.status(400).send({success:false,message:"Problem in saving data in database"})
+        }
 
     } catch (error) {
         console.log('Error details:', error);
