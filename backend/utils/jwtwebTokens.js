@@ -12,6 +12,7 @@ const jwtToken = (userId , res)=>{
         sameSite:"none",
         secure:true
     })
+    return token;
 }
 
 export default jwtToken;

@@ -52,22 +52,16 @@ export const userRegister = async(req, res)=>{
 
         //saving user
         if(newUser){
-            await newUser.save(); //saved
-            //after saving using jwt token from utils
-            jwtToken(newUser._id,res);
-
-        }else{
-            res.status(400).send({success:false,message:"Problem in saving data in data base"})
-        }
-
-        //sending to frontend
-        res.status(201).send({
-            _id:newUser._id,
-            fullname:newUser.fullname,
-            username:newUser.username,
-            profilepic:newUser.profilepic,
-            email:newUser.email
-        })
+            await newUser.save();
+            const token = jwtToken(newUser._id,res);
+            res.status(201).send({
+                _id:newUser._id,
+                fullname:newUser.fullname,
+                username:newUser.username,
+                profilepic:newUser.profilepic,
+                email:newUser.email,
+                token
+            })
 
     } catch (error) {
         console.log('Error details:', error);
@@ -89,15 +83,14 @@ export const userLogin = async(req,res)=>{
         const comparePass = bcryptjs.compareSync(password,user.password || "");
         if(!comparePass) return res.status(400).send({success:false,message:"Email/password does not match"});
 
-        //jwt token is is added while login
-        jwtToken(user._id,res); 
-       //if password matches
+        const token = jwtToken(user._id,res); 
        res.status(200).send({
             _id:user._id,
             fullname:user.fullname,
             username:user.username,
             profilepic:user.profilepic,
             email:user.email,
+            token,
             message:"succesfully login"
        })
 
