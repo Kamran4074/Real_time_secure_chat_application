@@ -68,7 +68,7 @@ console.log(inputData);
                                 onChange={handelInput}
                                 placeholder='Enter Full Name'
                                 required
-                                className='w-full input input-bordered h-10 text-white' />
+                                className='w-full input input-bordered h-10 text-gray-900' />
                         </div>
                         <div>
                             <label className='label p-2' >
@@ -80,7 +80,7 @@ console.log(inputData);
                                 onChange={handelInput}
                                 placeholder='Enter UserName'
                                 required
-                                className='w-full input input-bordered h-10 text-white' />
+                                className='w-full input input-bordered h-10 text-gray-900' />
                         </div>
                         <div>
                             <label className='label p-2' >
@@ -92,7 +92,7 @@ console.log(inputData);
                                 onChange={handelInput}
                                 placeholder='Enter email'
                                 required
-                                className='w-full input input-bordered h-10 text-white' />
+                                className='w-full input input-bordered h-10 text-gray-900' />
                         </div>
                         <div>
                             <label className='label p-2' >
@@ -104,7 +104,7 @@ console.log(inputData);
                                 onChange={handelInput}
                                 placeholder='Enter password'
                                 required
-                                className='w-full input input-bordered h-10 text-white' />
+                                className='w-full input input-bordered h-10 text-gray-900' />
                         </div>
                         <div>
                             <label className='label p-2' >
@@ -116,7 +116,7 @@ console.log(inputData);
                                 onChange={handelInput}
                                 placeholder='Enter Confirm password'
                                 required
-                                className='w-full input input-bordered h-10 text-white' />
+                                className='w-full input input-bordered h-10 text-gray-900' />
                         </div>
 
                         <div
@@ -143,7 +143,7 @@ console.log(inputData);
                             className='mt-4 self-center 
                             w-auto px-2 py-1 bg-gray-950 
                             text-lg hover:bg-gray-900 
-                            text-white rounded-lg hover: scale-105'>
+                            text-gray-900 rounded-lg hover: scale-105'>
                            {loading ? "loading..":"Register"}
                             </button>
                     </form>

@@ -59,7 +59,7 @@ const Login = () => {
                                 onChange={handelInput}
                                 placeholder='Enter your email'
                                 required
-                                className='w-full input input-bordered h-10 text-white' />
+                                className='w-full input input-bordered h-10 text-gray-900' />
                         </div>
                         <div>
                             <label className='label p-2' >
@@ -71,7 +71,7 @@ const Login = () => {
                                 onChange={handelInput}
                                 placeholder='Enter your password'
                                 required
-                                className='w-full input input-bordered h-10 text-white' />
+                                className='w-full input input-bordered h-10 text-gray-900' />
                         </div>
                         <button type='submit'
                             className='mt-4 self-center 
