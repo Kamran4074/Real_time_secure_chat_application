@@ -14,7 +14,7 @@ export const SocketContextProvider=({children})=>{
     const {authUser} = useAuth();
     useEffect(()=>{
         if(authUser){
-            const newSocket = io("http://localhost:3000",{
+            const newSocket = io("https://chatwave-backend-biic.onrender.com",{
                 query:{
                     userId:authUser?._id,
                 }
