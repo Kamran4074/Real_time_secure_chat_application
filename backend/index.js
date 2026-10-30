@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import mongoose from "mongoose";
 
 import {app , server} from './socket/socket.js'
 
@@ -53,6 +54,16 @@ app.use('/api/user',userRouter)
 
 app.get('/',(req,res)=>{
     res.send("Server is working");
+})
+
+// Health check for the scheduled ping: also touches MongoDB so the database counts as active
+app.get('/api/health', async(req,res)=>{
+    try {
+        await mongoose.connection.db.admin().ping();
+        res.status(200).send({status:"ok", db:"up", uptime:Math.round(process.uptime())});
+    } catch (error) {
+        res.status(503).send({status:"error", db:"down"});
+    }
 })
 
 const PORT = process.env.PORT || 3000
