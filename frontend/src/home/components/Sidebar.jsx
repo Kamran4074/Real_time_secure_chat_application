@@ -19,15 +19,31 @@ const Sidebar = ({ onSelectUser }) => {
     const [loading, setLoading] = useState(false);
     const [selectedUserId, setSetSelectedUserId] = useState(null);
     const [unreadMessages, setUnreadMessages] = useState({});
-    const {messages , setMessage, selectedConversation ,  setSelectedConversation} = userConversation();
+    const { setSelectedConversation, reset } = userConversation();
     const { onlineUser , socket} = useSocketContext();
 
-    const nowOnline = chatUser.map((user)=>(user._id));
     //chats function
-    const isOnline = nowOnline.map(userId => onlineUser.includes(userId));
+    const isOnline = (userId) => onlineUser.includes(userId);
+
+    //show user with u chatted (also re-run to bring the latest chat to the top)
+    const chatUserHandler = async () => {
+        setLoading(true)
+        try {
+            const chatters = await axios.get(`/api/user/currentchatters`)
+            setChatUser(chatters.data)
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        chatUserHandler()
+    }, [])
 
     useEffect(()=>{
-        socket?.on("newMessage",(newMessage)=>{
+        const handleNewMessage = (newMessage)=>{
             // Only count if message is not from selected conversation
             if(newMessage.senderId !== selectedUserId) {
                 setUnreadMessages(prev => ({
@@ -35,43 +51,20 @@ const Sidebar = ({ onSelectUser }) => {
                     [newMessage.senderId]: (prev[newMessage.senderId] || 0) + 1
                 }));
             }
-        })
-        return ()=> socket?.off("newMessage");
-    },[socket,messages,selectedUserId])
-
-    //show user with u chatted
-    useEffect(() => {
-        const chatUserHandler = async () => {
-            setLoading(true)
-            try {
-                const chatters = await axios.get(`/api/user/currentchatters`)
-                const data = chatters.data;
-                if (data.success === false) {
-                    setLoading(false)
-                    console.log(data.message);
-                }
-                setLoading(false)
-                setChatUser(data)
-
-            } catch (error) {
-                setLoading(false)
-                console.log(error);
-            }
+            chatUserHandler()
         }
-        chatUserHandler()
-    }, [])
+        socket?.on("newMessage", handleNewMessage)
+        // remove only our own listener, not MessageContainer's
+        return ()=> socket?.off("newMessage", handleNewMessage);
+    },[socket,selectedUserId])
     
     //show user from the search result
     const handelSearchSubmit = async (e) => {
         e.preventDefault();
         setLoading(true)
         try {
-            const search = await axios.get(`/api/user/search?search=${searchInput}`);
+            const search = await axios.get(`/api/user/search`, { params: { search: searchInput } });
             const data = search.data;
-            if (data.success === false) {
-                setLoading(false)
-                console.log(data.message);
-            }
             setLoading(false)
             if (data.length === 0) {
                 toast.info("User Not Found")
@@ -109,19 +102,16 @@ const Sidebar = ({ onSelectUser }) => {
             setLoading(true)
             try {
                 const logout = await axios.post('/api/auth/logout')
-                const data = logout.data;
-                if (data?.success === false) {
-                    setLoading(false)
-                    console.log(data?.message);
-                }
-                toast.info(data?.message)
+                toast.info(logout.data?.message)
+            } catch (error) {
+                console.log(error);
+            } finally {
+                // always clear the local session, even if the request failed
                 localStorage.removeItem('chatapp')
+                reset()
                 setAuthUser(null)
                 setLoading(false)
                 navigate('/login')
-            } catch (error) {
-                setLoading(false)
-                console.log(error);
             }
         }
     }
@@ -151,7 +141,7 @@ const Sidebar = ({ onSelectUser }) => {
                 <>
                     <div className="flex-1 overflow-y-auto scrollbar">
                         <div className='w-auto'>
-                            {searchUser.map((user, index) => (
+                            {searchUser.map((user) => (
                                 <div key={user._id}>
                                     <div
                                         onClick={() => handelUserClick(user)}
@@ -161,7 +151,7 @@ const Sidebar = ({ onSelectUser }) => {
                                                 ${selectedUserId === user?._id ? 'bg-sky-500' : ''
                                             } `}>
                                         {/*Socket is Online*/}
-                                        <div className={`avatar ${isOnline[index] ? 'online':''}`}>
+                                        <div className={`avatar ${isOnline(user._id) ? 'online':''}`}>
                                             <div className="w-12 rounded-full">
                                                 <img 
                                                     src={user.profilepic || `https://avatar.iran.liara.run/public?username=${user.username}`} 
@@ -202,7 +192,7 @@ const Sidebar = ({ onSelectUser }) => {
                                 </>
                             ) : (
                                 <>
-                                    {chatUser.map((user, index) => (
+                                    {chatUser.map((user) => (
                                         <div key={user._id}>
                                             <div
                                                 onClick={() => handelUserClick(user)}
@@ -213,7 +203,7 @@ const Sidebar = ({ onSelectUser }) => {
                                                     } `}>
 
                                                 {/*Socket is Online*/}
-                                                <div className={`avatar ${isOnline[index] ? 'online':''}`}>
+                                                <div className={`avatar ${isOnline(user._id) ? 'online':''}`}>
                                                     <div className="w-12 rounded-full">
                                                         <img 
                                                             src={user.profilepic || `https://avatar.iran.liara.run/public?username=${user.username}`} 

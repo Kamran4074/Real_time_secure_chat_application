@@ -15,7 +15,6 @@ const Register = () => {
             ...inputData , [e.target.id]:e.target.value
         })
     }
-console.log(inputData);
     const selectGender=(selectGender)=>{
         setInputData((prev)=>({
             ...prev , gender:selectGender === inputData.gender ? '' : selectGender
@@ -29,14 +28,19 @@ console.log(inputData);
             setLoading(false)
             return toast.error("Password Dosen't match")
         }
+        if((inputData.password || '').length < 6){
+            setLoading(false)
+            return toast.error("Password must be at least 6 characters")
+        }
+        if(!inputData.gender){
+            setLoading(false)
+            return toast.error("Please select a gender")
+        }
         try {
-            const register = await axios.post(`/api/auth/register`,inputData);
+            // confpassword is only checked here, never sent to the server
+            const { confpassword, ...payload } = inputData;
+            const register = await axios.post(`/api/auth/register`,payload);
             const data = register.data;
-            if(data.success === false){
-                setLoading(false)
-                toast.error(data.message)
-                console.log(data.message);
-            }
             toast.success(data?.message)
             localStorage.setItem('chatapp',JSON.stringify(data))
             setAuthUser(data)
@@ -44,8 +48,7 @@ console.log(inputData);
             navigate('/login')
         } catch (error) {
             setLoading(false)
-            console.log(error);
-            toast.error(error?.response?.data?.message)
+            toast.error(error?.response?.data?.message || "Registration failed")
         }
     }
 
@@ -112,7 +115,7 @@ console.log(inputData);
                             </label>
                             <input
                                 id='confpassword'
-                                type='text'
+                                type='password'
                                 onChange={handelInput}
                                 placeholder='Enter Confirm password'
                                 required
@@ -143,7 +146,7 @@ console.log(inputData);
                             className='mt-4 self-center 
                             w-auto px-2 py-1 bg-gray-950 
                             text-lg hover:bg-gray-900 
-                            text-gray-900 rounded-lg hover: scale-105'>
+                            text-white rounded-lg hover: scale-105'>
                            {loading ? "loading..":"Register"}
                             </button>
                     </form>

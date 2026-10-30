@@ -13,23 +13,22 @@ export const SocketContextProvider=({children})=>{
     const [onlineUser,setOnlineUser]=useState([]);
     const {authUser} = useAuth();
     useEffect(()=>{
-        if(authUser){
-            const newSocket = io("https://chatwave-backend-biic.onrender.com",{
-                query:{
-                    userId:authUser?._id,
-                }
-            })
-            newSocket.on("getOnlineUsers",(users)=>{
-                setOnlineUser(users)
-            });
-            setSocket(newSocket);
-            return()=>newSocket.close();
-        }else{
-            if(socket){
-                socket.close();
-                setSocket(null); 
-            }
+        if(!authUser?.token){
+            setSocket(null);
+            setOnlineUser([]);
+            return;
         }
+        // server verifies this token and takes the userId from it
+        const newSocket = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000',{
+            auth:{
+                token:authUser.token,
+            }
+        })
+        newSocket.on("getOnlineUsers",(users)=>{
+            setOnlineUser(users)
+        });
+        setSocket(newSocket);
+        return()=>newSocket.close();
     },[authUser]);
     return(
     <SocketContext.Provider value={{socket , onlineUser}}>

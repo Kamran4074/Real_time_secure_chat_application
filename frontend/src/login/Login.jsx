@@ -17,7 +17,6 @@ const Login = () => {
             ...userInput, [e.target.id]: e.target.value
         })
     }
-    console.log(userInput);
 
     const handelSubmit = async (e) => {
         e.preventDefault();
@@ -25,10 +24,6 @@ const Login = () => {
         try {
             const login = await axios.post(`/api/auth/login`, userInput);
             const data = login.data;
-            if (data.success === false) {
-                setLoading(false)
-                console.log(data.message);
-            }
             toast.success(data.message)
             localStorage.setItem('chatapp',JSON.stringify(data));
             setAuthUser(data)
@@ -36,8 +31,7 @@ const Login = () => {
             navigate('/')
         } catch (error) {
             setLoading(false)
-            console.log(error);
-            toast.error(error?.response?.data?.message)
+            toast.error(error?.response?.data?.message || "Login failed")
         }
     }
     return (

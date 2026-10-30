@@ -6,9 +6,10 @@ import { IoArrowBackSharp, IoSend } from 'react-icons/io5';
 import axios from 'axios';
 import { useSocketContext } from '../../context/SocketContext';
 import notify from '../../assets/sound/notification.mp3';
+import { toast } from 'react-toastify';
 
 const MessageContainer = ({ onBackUser }) => {
-    const { messages, selectedConversation, setMessage, setSelectedConversation } = userConversation();
+    const { messages, selectedConversation, setMessage, addMessage } = userConversation();
     const {socket, onlineUser} = useSocketContext();
     const { authUser } = useAuth();
     const [loading, setLoading] = useState(false);
@@ -23,17 +24,17 @@ const MessageContainer = ({ onBackUser }) => {
     useEffect(()=>{
       const handleNewMessage = (newMessage)=>{
         // Only add message if it's for the current conversation
-        if(selectedConversation?._id === newMessage.senderId || selectedConversation?._id === newMessage.recieverId){
+        if(selectedConversation?._id === newMessage.senderId){
           const sound = new Audio(notify);
-          sound.play();
-          setMessage([...messages,newMessage])
+          sound.play().catch(()=>{});
+          addMessage(newMessage)
         }
       }
 
       socket?.on("newMessage", handleNewMessage)
 
       return ()=> socket?.off("newMessage", handleNewMessage);
-    },[socket,setMessage,messages,selectedConversation])
+    },[socket,addMessage,selectedConversation])
 
     // Listen for typing events
     useEffect(()=>{
@@ -117,17 +118,12 @@ const MessageContainer = ({ onBackUser }) => {
         setSending(true);
         try {
             const res =await axios.post(`/api/message/send/${selectedConversation?._id}`,{messages:sendData});
-            const data = await res.data;
-            if (data.success === false) {
-                setSending(false);
-                console.log(data.message);
-            }
             setSending(false);
             setSendData('')
-            setMessage([...messages,data])
+            addMessage(res.data)
         } catch (error) {
             setSending(false);
-            console.log(error);
+            toast.error(error?.response?.data?.message || "Message not sent")
         }
     }
 
@@ -212,7 +208,7 @@ const MessageContainer = ({ onBackUser }) => {
             </div>
             <form onSubmit={handelSubmit} className='rounded-full text-black'>
             <div className='w-full rounded-full flex items-center bg-white'>
-              <input value={sendData} onChange={handelMessages} required id='message' type='text' 
+              <input value={sendData} onChange={handelMessages} required maxLength={2000} id='message' type='text'
               className='w-full bg-transparent outline-none px-4 rounded-full'/>
               <button type='submit'>
                 {sending ? <div className='loading loading-spinner'></div>:

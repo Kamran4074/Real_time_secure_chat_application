@@ -12,25 +12,27 @@ const isLogin = async(req, res, next) => {
         if(!token) {
             return res.status(401).send({success:false, message:"User unauthorized"});
         }
-        
-        const decode = jwt.verify(token, process.env.JWT_SECRET); 
-        
-        if(!decode) {
-            return res.status(401).send({success:false, message:"Invalid token"});
+
+        let decode;
+        try {
+            decode = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (err) {
+            // expired / tampered token
+            return res.status(401).send({success:false, message:"Session expired, please login again"});
         }
-        
+
         const user = await User.findById(decode.userId).select("-password");
-        
+
         if(!user) {
-            return res.status(404).send({success:false, message:"User not found"});
+            return res.status(401).send({success:false, message:"User not found"});
         }
-        
+
         req.user = user; // Attach user to request
         next(); // Continue to next middleware/controller
-        
+
     } catch (error) {
         console.log('error in isLogin middleware:', error);
-        res.status(500).send({success:false, message: error.message});
+        res.status(500).send({success:false, message:"Internal server error"});
     }
 }
 

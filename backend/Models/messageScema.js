@@ -12,18 +12,14 @@ const messageSchema = mongoose.Schema({
         ref:"User",
         required:true
     },
-    reciverId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
-    },
     message:{
         type:String,
-        required:true
+        required:true,
+        maxlength:2000
     },
     conversationId:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"Conversation",
-        default:[]
+        ref:"Conversation"
     }
 },{timestamps:true});
 

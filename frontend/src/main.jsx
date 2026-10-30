@@ -20,6 +20,18 @@ axios.interceptors.request.use((config) => {
     return config;
 });
 
+// Token expired or invalid -> drop the stale session and go to login
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if(error?.response?.status === 401 && localStorage.getItem('chatapp')) {
+            localStorage.removeItem('chatapp');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
   <AuthContextProvider>
