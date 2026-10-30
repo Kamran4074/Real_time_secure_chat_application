@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
 import User from "../Models/userModels.js";
+import { verifyToken } from "../utils/jwtwebTokens.js";
 
 const isLogin = async(req, res, next) => {
     try {
@@ -15,9 +15,9 @@ const isLogin = async(req, res, next) => {
 
         let decode;
         try {
-            decode = jwt.verify(token, process.env.JWT_SECRET);
+            decode = await verifyToken(token);
         } catch (err) {
-            // expired / tampered token
+            // expired / tampered / logged-out token
             return res.status(401).send({success:false, message:"Session expired, please login again"});
         }
 
@@ -28,6 +28,7 @@ const isLogin = async(req, res, next) => {
         }
 
         req.user = user; // Attach user to request
+        req.token = decode;
         next(); // Continue to next middleware/controller
 
     } catch (error) {

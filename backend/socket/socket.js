@@ -1,8 +1,8 @@
 import {Server} from 'socket.io';
 import http from 'http';
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { verifyToken } from '../utils/jwtwebTokens.js';
 
 const app = express();
 
@@ -17,12 +17,13 @@ const io = new Server(server,{
 const onlineUsers = new Map(); //{userId -> number of open sockets (tabs)}
 
 // Every socket must present a valid JWT; userId comes from the token, never from the client
-io.use((socket, next)=>{
+io.use(async(socket, next)=>{
     try {
         const token = socket.handshake.auth?.token;
         if(!token) return next(new Error("Unauthorized"));
-        const decode = jwt.verify(token, process.env.JWT_SECRET);
+        const decode = await verifyToken(token);
         socket.userId = decode.userId.toString();
+        socket.data.jti = decode.jti;
         next();
     } catch (error) {
         next(new Error("Unauthorized"));
@@ -34,7 +35,13 @@ export const emitToUser = (userId, event, data)=>{
     io.to(userId.toString()).emit(event, data);
 };
 
-const isValidId = (id)=> typeof id === 'string' && mongoose.Types.ObjectId.isValid(id);
+// Kick out live sockets that were opened with a token that just got logged out
+export const disconnectToken = async(userId, jti)=>{
+    const sockets = await io.in(userId.toString()).fetchSockets();
+    sockets.filter(s => s.data.jti === jti).forEach(s => s.disconnect(true));
+};
+
+const isValidId =(id)=> typeof id === 'string' && mongoose.Types.ObjectId.isValid(id);
 
 io.on('connection',(socket)=>{
     const userId = socket.userId;

@@ -1,6 +1,7 @@
 import User from "../Models/userModels.js";
 import bcryptjs from "bcryptjs";
-import jwtToken, { cookieOptions } from "../utils/jwtwebTokens.js";
+import jwtToken, { cookieOptions, revokeToken } from "../utils/jwtwebTokens.js";
+import { disconnectToken } from "../socket/socket.js";
 import escapeRegex from "../utils/escapeRegex.js";
 
 const isNonEmptyString = (v)=> typeof v === 'string' && v.trim().length > 0;
@@ -117,6 +118,9 @@ export const userLogin = async(req,res)=>{
 export const userLogout = async(req,res)=>{
 
     try {
+        // revoke this exact token so a stolen copy stops working too (other devices stay logged in)
+        await revokeToken(req.token);
+        await disconnectToken(req.user._id, req.token.jti);
         // must use the same options the cookie was set with, otherwise the browser keeps it
         res.clearCookie("jwt", cookieOptions);
         res.status(200).send({message:"User logout"});
