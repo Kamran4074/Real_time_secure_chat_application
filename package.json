@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon backend/index.js",
     "start": "node backend/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand"
   },
   "keywords": [],
   "author": "",
@@ -27,5 +27,11 @@
     "nodemon": "^3.1.14",
     "socket.io": "^4.8.3",
     "tailwindcss": "^4.2.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^10.4.3",
+    "socket.io-client": "^4.8.4",
+    "supertest": "^7.3.1"
   }
 }
