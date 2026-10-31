@@ -32,6 +32,15 @@ export const loginSchema = z.object({
     password: z.string({ error: LOGIN_REQUIRED }).min(1, LOGIN_REQUIRED).max(200, "Invalid email or password"),
 });
 
+export const forgotPasswordSchema = z.object({
+    email: required("Email is required").pipe(z.string().max(254, "Invalid email").regex(EMAIL, "Invalid email")),
+});
+
+export const resetPasswordSchema = z.object({
+    token: z.string({ error: "Invalid reset link" }).regex(/^[a-f0-9]{64}$/, "Invalid reset link"),
+    password: z.string({ error: PASSWORD_RULE }).min(6, PASSWORD_RULE).max(72, PASSWORD_RULE),
+});
+
 export const oauthExchangeSchema = z.object({
     code: z.string({ error: "Invalid sign-in code" }).regex(/^[a-f0-9]{64}$/, "Invalid sign-in code"),
 });

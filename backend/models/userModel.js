@@ -46,6 +46,10 @@ const userSchema = mongoose.Schema({
         type: String,
         unique: true,
         sparse: true
+    },
+    // set on password reset; tokens issued before it are rejected
+    passwordChangedAt:{
+        type: Date
     }
 },{timestamps:true});
 

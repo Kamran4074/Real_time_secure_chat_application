@@ -80,6 +80,9 @@ npm run test:e2e          # starts backend (in-memory DB) + built frontend itsel
 
 - **Security headers**: `helmet` on the API; the same set (CSP, `X-Frame-Options: DENY`, nosniff, Referrer / Permissions policy)
   on the frontend via [frontend/vercel.json](frontend/vercel.json) on Vercel and [frontend/nginx.conf](frontend/nginx.conf) in Docker.
+- **Password reset by email** (Brevo): one-time link, only its SHA-256 hash is stored, expires in 30 min,
+  same response whether or not the email exists, and a reset logs out every existing session and socket.
+  Set `BREVO_API_KEY` + `EMAIL_FROM` (a sender verified in Brevo) in `backend/.env`; without them the email is only logged.
 - JWT with revocation on logout, bcrypt passwords, Zod validation on every input, CORS allow-list, 10 kB body limit.
 
 CI (`.github/workflows/test.yml`) runs all of this on every push and pull request.

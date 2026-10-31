@@ -68,6 +68,9 @@ const Login = () => {
                     placeholder='you@example.com' autoComplete='email' required onChange={handelInput} />
                 <TextField id='password' type='password' label='Password' icon={FiLock} error={errors.password}
                     placeholder='Enter your password' autoComplete='current-password' required onChange={handelInput} />
+                <div className='flex justify-end'>
+                    <Link to='/forgot-password' className='text-sm font-semibold text-brand-600 hover:text-brand-700'>Forgot password?</Link>
+                </div>
                 <Button type='submit' loading={loading} className='!mt-6'>
                     {loading ? 'Logging in…' : 'Log in'}
                 </Button>

@@ -36,6 +36,10 @@ export const verifyToken = async(token)=>{
     return decode;
 }
 
+// true when the password was reset after this token was issued (iat is in seconds)
+export const issuedBeforePasswordChange = (decode, user)=>
+    Boolean(user?.passwordChangedAt) && decode.iat < Math.floor(user.passwordChangedAt.getTime()/1000);
+
 export const revokeToken = async(decode)=>{
     await RevokedToken.updateOne(
         {jti:decode.jti},

@@ -8,6 +8,8 @@ import { VerifyUser } from "./utils/VerifyUser.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import ServerStatus from "./components/ServerStatus.jsx";
 import OAuthHandler from "./components/OAuthHandler.jsx";
+import ForgotPassword from "./password/ForgotPassword.jsx";
+import ResetPassword from "./password/ResetPassword.jsx";
 
 function App() {
   const {authUser} = useAuth();
@@ -19,6 +21,9 @@ function App() {
       <Routes>
         <Route path="/login" element={!authUser ? <Login/> : <Navigate to='/'/>}/>
         <Route path="/register" element={!authUser ? <Register/> : <Navigate to='/'/>}/>
+        <Route path="/forgot-password" element={!authUser ? <ForgotPassword/> : <Navigate to='/'/>}/>
+        {/* reachable while logged in too: the link comes from an email */}
+        <Route path="/reset-password" element={<ResetPassword/>}/>
         <Route element={<VerifyUser/>}>
           <Route path="/" element={<Home/>}/>
         </Route>

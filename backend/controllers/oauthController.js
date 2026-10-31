@@ -3,7 +3,7 @@ import User from "../models/userModel.js";
 import OAuthCode from "../models/oauthCodeModel.js";
 import jwtToken from "../utils/jwt.js";
 import escapeRegex from "../utils/escapeRegex.js";
-import allowedOrigins from "../utils/allowedOrigins.js";
+import { clientUrl } from "../utils/allowedOrigins.js";
 import logger, { errorMeta } from "../utils/logger.js";
 import { getProvider, getCredentials, isEnabled, enabledProviders, exchangeCode } from "../utils/oauthProviders.js";
 
@@ -13,8 +13,6 @@ const CODE_TTL_MS = 60*1000;
 const trimSlash = (url)=> url.replace(/\/+$/, '');
 // where this backend is reachable (used in the redirect_uri registered with Google/GitHub)
 const serverUrl = ()=> trimSlash(process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`);
-// where to send the user back after login
-const clientUrl = ()=> trimSlash(process.env.CLIENT_URL || allowedOrigins[0]);
 const redirectUri = (name)=> `${serverUrl()}/api/auth/${name}/callback`;
 
 // lax: the cookie must survive the top-level redirect back from Google/GitHub

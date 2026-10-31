@@ -28,6 +28,23 @@ export const registerSchema = z.object({
     when: ({ value }) => typeof value?.password === 'string' && typeof value?.confpassword === 'string' && value.confpassword !== '',
 });
 
+export const forgotPasswordSchema = z.object({
+    email: required('Email').pipe(z.string().regex(EMAIL, 'Enter a valid email address')),
+});
+
+export const resetPasswordSchema = z.object({
+    password: z.string({ error: 'Password is required' })
+        .min(6, 'Use at least 6 characters')
+        .max(72, 'Use at most 72 characters'),
+    confpassword: z.string({ error: 'Please confirm your password' }).min(1, 'Please confirm your password'),
+}).refine(data => data.password === data.confpassword, {
+    path: ['confpassword'],
+    message: "Passwords don't match",
+});
+
+// the token in the emailed link: 64 hex characters
+export const isResetToken = (token) => /^[a-f0-9]{64}$/.test(token || '');
+
 // ZodError -> { field: firstMessage }
 export const fieldErrors = (error) => {
     const out = {};

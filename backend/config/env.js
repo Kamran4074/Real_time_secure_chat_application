@@ -25,6 +25,9 @@ const envSchema = z.object({
     GOOGLE_CLIENT_SECRET: blank(z.string().optional()),
     GITHUB_CLIENT_ID: blank(z.string().optional()),
     GITHUB_CLIENT_SECRET: blank(z.string().optional()),
+    BREVO_API_KEY: blank(z.string().optional()),
+    EMAIL_FROM: blank(z.email({ error: "EMAIL_FROM must be an email address" }).optional()),
+    EMAIL_FROM_NAME: blank(z.string().optional()),
 }).superRefine((env, ctx)=>{
     // half-configured OAuth is almost always a copy/paste mistake
     for(const provider of ['GOOGLE', 'GITHUB']){
@@ -51,6 +54,9 @@ export const loadEnv = ()=>{
     }
 
     const env = result.data;
+    if(Boolean(env.BREVO_API_KEY) !== Boolean(env.EMAIL_FROM)){
+        logger.warn("Set both BREVO_API_KEY and EMAIL_FROM to send emails; password reset emails are disabled");
+    }
     if(env.JWT_SECRET.length < 32){
         logger.warn("JWT_SECRET is short; use at least 32 random characters in production");
     }

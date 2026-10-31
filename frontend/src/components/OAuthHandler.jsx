@@ -15,7 +15,7 @@ const ERRORS = {
 };
 
 // After Google/GitHub, the backend redirects to "/?oauth_code=..." (or "?oauth_error=...").
-// The root path always loads, so this works on any host without SPA rewrites.
+// The root path always loads, so this works even on a host without SPA rewrites.
 const OAuthHandler = () => {
     // read the URL during the first render, before route guards redirect away from "/"
     const [params] = useState(() => new URLSearchParams(window.location.search));

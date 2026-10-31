@@ -64,6 +64,23 @@ test.describe('auth', () => {
         await expect(page).toHaveURL(/\/login$/);
     });
 
+    test('forgot password: link from login, request is accepted', async ({ page }) => {
+        await page.goto('/login');
+        await page.getByRole('link', { name: 'Forgot password?' }).click();
+        await expect(page).toHaveURL(/\/forgot-password$/);
+
+        await page.getByLabel('Email').fill(`someone.${run}@e2e.test`);
+        await page.getByRole('button', { name: 'Send reset link' }).click();
+        await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+    });
+
+    test('a broken reset link offers a new one', async ({ page }) => {
+        await page.goto('/reset-password?token=broken');
+        await expect(page.getByRole('heading', { name: 'Link not valid' })).toBeVisible();
+        await page.getByRole('link', { name: 'Request a new link' }).click();
+        await expect(page).toHaveURL(/\/forgot-password$/);
+    });
+
     test('register, log out and log back in', async ({ page }) => {
         const user = makeUser('Cara');
         await register(page, user);

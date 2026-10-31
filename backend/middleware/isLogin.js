@@ -1,5 +1,5 @@
 import User from "../models/userModel.js";
-import { verifyToken, isTokenError } from "../utils/jwt.js";
+import { verifyToken, isTokenError, issuedBeforePasswordChange } from "../utils/jwt.js";
 
 const isLogin = async(req, res, next) => {
     // Accept token from cookie OR Authorization header
@@ -25,6 +25,9 @@ const isLogin = async(req, res, next) => {
 
     if(!user) {
         return res.status(401).send({success:false, message:"User not found"});
+    }
+    if(issuedBeforePasswordChange(decode, user)) {
+        return res.status(401).send({success:false, message:"Session expired, please login again"});
     }
 
     req.user = user;

@@ -1,7 +1,8 @@
 import {Server} from 'socket.io';
 import http from 'http';
 import express from 'express';
-import { verifyToken, isTokenError } from '../utils/jwt.js';
+import { verifyToken, isTokenError, issuedBeforePasswordChange } from '../utils/jwt.js';
+import User from '../models/userModel.js';
 import allowedOrigins from '../utils/allowedOrigins.js';
 import { typingEventSchema } from '../validation/schemas.js';
 import logger, { errorMeta } from '../utils/logger.js';
@@ -25,6 +26,8 @@ io.use(async(socket, next)=>{
         const token = socket.handshake.auth?.token;
         if(!token) return next(new Error("Unauthorized"));
         const decode = await verifyToken(token);
+        const user = await User.findById(decode.userId).select('passwordChangedAt');
+        if(!user || issuedBeforePasswordChange(decode, user)) return next(new Error("Unauthorized"));
         socket.userId = decode.userId.toString();
         socket.data.jti = decode.jti;
         next();
@@ -44,6 +47,11 @@ export const emitToUser = (userId, event, data)=>{
 export const disconnectToken = async(userId, jti)=>{
     const sockets = await io.in(userId.toString()).fetchSockets();
     sockets.filter(s => s.data.jti === jti).forEach(s => s.disconnect(true));
+};
+
+// After a password reset: close every live socket of that user (they reconnect only with a new token)
+export const disconnectUser = (userId)=>{
+    io.in(userId.toString()).disconnectSockets(true);
 };
 
 // Forward typing events only when the payload is { receiverId: <ObjectId> }; ignore anything else.
