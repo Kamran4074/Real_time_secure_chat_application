@@ -6,10 +6,14 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
+    "e2e:server": "node scripts/e2e-server.js"
   },
   "nodemonConfig": {
-    "ignore": ["tests/*"]
+    "ignore": [
+      "tests/*"
+    ]
   },
   "keywords": [],
   "author": "",
