@@ -1,0 +1,26 @@
+name: CodeQL
+
+# Static security analysis (SAST): finds injection, XSS, unsafe regex and similar bugs in our own code.
+# Results appear under the repo's Security -> Code scanning tab.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1' # every Monday, catches newly added CodeQL rules
+
+jobs:
+  analyze:
+    name: Analyze JavaScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v4

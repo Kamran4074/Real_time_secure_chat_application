@@ -25,3 +25,8 @@ build/
 # Documentation (local planning files)
 *.md
 !README.md
+
+# Test output
+coverage/
+test-results/
+playwright-report/

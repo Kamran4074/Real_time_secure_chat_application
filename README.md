@@ -40,10 +40,28 @@ docker compose up --build   # frontend http://localhost:8080, backend http://loc
 
 ## Tests
 
+| Type | Tool | Where | What it covers |
+|---|---|---|---|
+| Unit | Jest / Vitest | `backend/tests/unit.*`, `frontend/src/test` | utils, Zod schemas, middleware, React components, store |
+| Integration (API) | Jest + Supertest + in-memory MongoDB | `backend/tests` | every endpoint and Socket.IO event |
+| Security | Jest + Supertest | `backend/tests/security.test.js` (+ per feature) | NoSQL injection, XSS, forged / `alg:none` JWTs, mass assignment, access control, headers, rate limiting |
+| End-to-end (automation) | Playwright | `frontend/e2e` | real browser: register, login, logout, two users chatting live |
+| Dependency scan | `npm audit` | CI | fails on high / critical vulnerabilities in production packages |
+| Static analysis (SAST) | CodeQL | `.github/workflows/codeql.yml` | security and quality issues in our own code |
+
 ```bash
 cd backend
 npm test                  # Jest + in-memory MongoDB, no setup needed
+npm run test:coverage     # fails below 90% statements / 80% branches
+
+cd frontend
+npm test                  # Vitest + React Testing Library
+npm run test:coverage
+npx playwright install chromium   # once
+npm run test:e2e          # starts backend (in-memory DB) + frontend itself
 ```
+
+CI (`.github/workflows/test.yml`) runs all of this on every push and pull request.
 
 ## Deployment
 
@@ -54,5 +72,5 @@ npm test                  # Jest + in-memory MongoDB, no setup needed
 
 ## Tech
 
-React 18, Vite, Tailwind, Zustand, Socket.IO, Express 5, MongoDB/Mongoose,
-JWT with revocation, OAuth 2.0, Zod validation, Winston logging, Jest, Docker, GitHub Actions.
+React 18, Vite 7, Tailwind, Zustand, Socket.IO, Express 5, MongoDB/Mongoose,
+JWT with revocation, OAuth 2.0, Zod validation, Winston logging, Jest, Vitest, Playwright, Docker, GitHub Actions.
