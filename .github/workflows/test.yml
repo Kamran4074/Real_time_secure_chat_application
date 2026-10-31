@@ -1,4 +1,4 @@
-name: Backend tests
+name: CI
 
 on:
   push:
@@ -6,15 +6,37 @@ on:
   pull_request:
 
 jobs:
-  test:
+  backend:
+    name: Backend tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: backend/package-lock.json
       - run: npm ci
       # uses an in-memory MongoDB, no secrets needed
       - run: npm test
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build

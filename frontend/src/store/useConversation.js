@@ -1,6 +1,6 @@
 import {create} from "zustand";
 
-const userConversation = create((set)=>({
+const useConversation = create((set)=>({
     selectedConversation: null,
     setSelectedConversation:(selectedConversation)=>set({selectedConversation}),
     messages:[],
@@ -10,4 +10,4 @@ const userConversation = create((set)=>({
     reset:()=>set({selectedConversation:null, messages:[]})
 }));
 
-export default userConversation
+export default useConversation

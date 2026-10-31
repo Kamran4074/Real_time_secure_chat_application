@@ -1,7 +1,7 @@
 import {Server} from 'socket.io';
 import http from 'http';
 import express from 'express';
-import { verifyToken, isTokenError } from '../utils/jwtwebTokens.js';
+import { verifyToken, isTokenError } from '../utils/jwt.js';
 import allowedOrigins from '../utils/allowedOrigins.js';
 import { typingEventSchema } from '../validation/schemas.js';
 import logger, { errorMeta } from '../utils/logger.js';

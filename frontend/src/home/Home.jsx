@@ -1,10 +1,9 @@
-import React from 'react';
 import Sidebar from './components/Sidebar';
 import MessageContainer from './components/MessageContainer';
-import userConversation from '../Zustans/useConversation';
+import useConversation from '../store/useConversation';
 
 const Home = () => {
-  const { selectedConversation, setSelectedConversation } = userConversation();
+  const { selectedConversation, setSelectedConversation } = useConversation();
 
   // mobile: show either the list or the open chat; desktop: both side by side
   return (

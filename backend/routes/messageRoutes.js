@@ -1,5 +1,5 @@
 import express from 'express';
-import { getMessages, sendMessage } from '../routControllers/messageroutController.js';
+import { getMessages, sendMessage } from '../controllers/messageController.js';
 import isLogin from '../middleware/isLogin.js';
 import validate from '../middleware/validate.js';
 import { userIdParams, sendMessageSchema } from '../validation/schemas.js';

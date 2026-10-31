@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios';
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import { FiSearch, FiX, FiLogOut, FiUsers } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
-import userConversation from '../../Zustans/useConversation';
+import useConversation from '../../store/useConversation';
 import { useSocketContext } from '../../context/SocketContext';
 import Logo from '../../components/ui/Logo';
 import Avatar from '../../components/ui/Avatar';
@@ -49,7 +49,7 @@ const Sidebar = () => {
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
     const [unreadMessages, setUnreadMessages] = useState({});
-    const { selectedConversation, setSelectedConversation, reset } = userConversation();
+    const { selectedConversation, setSelectedConversation, reset } = useConversation();
     const { onlineUser , socket} = useSocketContext();
     const selectedUserId = selectedConversation?._id;
 

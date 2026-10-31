@@ -1,5 +1,5 @@
-import React, { Fragment, useEffect, useState, useRef } from 'react'
-import userConversation from '../../Zustans/useConversation';
+import { Fragment, useEffect, useState, useRef } from 'react'
+import useConversation from '../../store/useConversation';
 import { useAuth } from '../../context/AuthContext';
 import { HiChatBubbleLeftRight } from 'react-icons/hi2';
 import { FiArrowLeft, FiSend } from 'react-icons/fi';
@@ -38,7 +38,7 @@ const MessagesSkeleton = () => (
 );
 
 const MessageContainer = ({ onBackUser }) => {
-    const { messages, selectedConversation, setMessage, addMessage } = userConversation();
+    const { messages, selectedConversation, setMessage, addMessage } = useConversation();
     const {socket, onlineUser} = useSocketContext();
     const { authUser } = useAuth();
     const [loading, setLoading] = useState(false);

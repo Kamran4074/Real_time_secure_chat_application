@@ -11,9 +11,8 @@ import OAuthHandler from "./components/OAuthHandler.jsx";
 
 function App() {
   const {authUser} = useAuth();
-  
+
   return (
-    <>
     <div className="min-h-[100dvh] w-full">
       <ServerStatus/>
       <OAuthHandler/>
@@ -22,14 +21,11 @@ function App() {
         <Route path="/register" element={!authUser ? <Register/> : <Navigate to='/'/>}/>
         <Route element={<VerifyUser/>}>
           <Route path="/" element={<Home/>}/>
-          <Route path="/profile/:id" element={<Home/>}/>
         </Route>
         <Route path="*" element={<Navigate to={authUser ? '/' : '/login'}/>}/>
       </Routes>
       <ToastContainer position="top-right" autoClose={3000} newestOnTop theme="light"/>
     </div>
-
-    </>
   )
 }
 

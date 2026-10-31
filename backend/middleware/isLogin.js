@@ -1,5 +1,5 @@
-import User from "../Models/userModels.js";
-import { verifyToken, isTokenError } from "../utils/jwtwebTokens.js";
+import User from "../models/userModel.js";
+import { verifyToken, isTokenError } from "../utils/jwt.js";
 
 const isLogin = async(req, res, next) => {
     // Accept token from cookie OR Authorization header
@@ -27,9 +27,9 @@ const isLogin = async(req, res, next) => {
         return res.status(401).send({success:false, message:"User not found"});
     }
 
-    req.user = user; // Attach user to request
+    req.user = user;
     req.token = decode;
-    next(); // Continue to next middleware/controller
+    next();
 }
 
 export default isLogin;

@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import User from "../Models/userModels.js";
-import OAuthCode from "../Models/oauthCodeModel.js";
-import jwtToken from "../utils/jwtwebTokens.js";
+import User from "../models/userModel.js";
+import OAuthCode from "../models/oauthCodeModel.js";
+import jwtToken from "../utils/jwt.js";
 import escapeRegex from "../utils/escapeRegex.js";
 import allowedOrigins from "../utils/allowedOrigins.js";
 import logger, { errorMeta } from "../utils/logger.js";

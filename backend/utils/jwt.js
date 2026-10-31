@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import RevokedToken from "../Models/revokedTokenModel.js";
+import RevokedToken from "../models/revokedTokenModel.js";
 
 // Same options must be used when clearing the cookie, or the browser ignores it
 export const cookieOptions = {

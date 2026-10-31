@@ -2,7 +2,7 @@ import express from 'express';
 import isLogin from '../middleware/isLogin.js'
 import validate from '../middleware/validate.js';
 import { searchQuery } from '../validation/schemas.js';
-import { getCurrentChatters, getUserBySearch } from '../routControllers/userhandlerController.js';
+import { getCurrentChatters, getUserBySearch } from '../controllers/userController.js';
 
 const router = express.Router();
 

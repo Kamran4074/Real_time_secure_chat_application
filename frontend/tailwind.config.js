@@ -31,10 +31,4 @@ export default {
       },
     },
   },
-  plugins: [require("daisyui")],
-  // light only: daisyUI's auto dark theme made input text invisible (dark text on dark inputs)
-  daisyui: {
-    themes: ['light'],
-    logs: false,
-  },
 }

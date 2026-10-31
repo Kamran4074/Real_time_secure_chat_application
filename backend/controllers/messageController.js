@@ -1,9 +1,9 @@
-import Conversation from "../Models/conversationModels.js";
-import Message from "../Models/messageScema.js";
-import User from "../Models/userModels.js";
+import Conversation from "../models/conversationModel.js";
+import Message from "../models/messageModel.js";
+import User from "../models/userModel.js";
 import { emitToUser } from "../socket/socket.js";
 
-// :id is a valid ObjectId and messages is a trimmed 1-2000 char string (see route/messageRoute.js)
+// :id is a valid ObjectId and messages is a trimmed 1-2000 char string (see routes/messageRoutes.js)
 export const sendMessage =async(req,res)=>{
     const {messages} = req.body;
     const {id:receiverId} = req.valid.params;
@@ -37,7 +37,7 @@ export const sendMessage =async(req,res)=>{
 
     await Promise.all([chats.save(),newMessages.save()]);
 
-    //SOCKET.IO function (reaches every open tab of the receiver)
+    // real-time delivery to every open tab of the receiver
     emitToUser(receiverId, "newMessage", newMessages);
 
     res.status(201).send(newMessages)

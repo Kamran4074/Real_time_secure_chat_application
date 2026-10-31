@@ -2,7 +2,7 @@ import 'dotenv/config' // must be first so env is loaded before anything reads i
 import mongoose from "mongoose";
 import { loadEnv } from "./config/env.js";
 import logger, { errorMeta } from "./utils/logger.js";
-import dbConnect from "./DB/dbConnect.js";
+import dbConnect from "./config/db.js";
 import {server} from './app.js'
 import {io} from './socket/socket.js'
 

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-//we need sender id reciever id and messages in message schema
+// note: the field is spelled "recieverId" in the database; kept for existing data
 const messageSchema = mongoose.Schema({
     senderId:{
         type:mongoose.Schema.Types.ObjectId,

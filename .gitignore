@@ -1,8 +1,10 @@
 # Dependencies
 node_modules/
 
-# Environment variables
+# Environment variables (keep the examples)
 .env
+.env.*
+!.env.example
 
 # Logs
 *.log

@@ -1,11 +1,11 @@
-import User from "../Models/userModels.js";
+import User from "../models/userModel.js";
 import bcryptjs from "bcryptjs";
-import jwtToken, { cookieOptions, revokeToken } from "../utils/jwtwebTokens.js";
+import jwtToken, { cookieOptions, revokeToken } from "../utils/jwt.js";
 import { disconnectToken } from "../socket/socket.js";
 import escapeRegex from "../utils/escapeRegex.js";
 import logger from "../utils/logger.js";
 
-// Input is validated and trimmed by registerSchema / loginSchema before these run (see route/authUser.js).
+// Input is validated and trimmed by registerSchema / loginSchema before these run (see routes/authRoutes.js).
 // Unexpected errors go to the central error handler.
 
 const loginResponse = (user, token, message)=> ({
@@ -19,12 +19,12 @@ const loginResponse = (user, token, message)=> ({
 });
 
 //----------------------
-//registration loggic
+// register
 //----------------------
 export const userRegister = async(req, res)=>{
     const{fullname,username,email,gender,password} = req.body;
 
-    //check weather there is user present or not (case-insensitive)
+    // username / email already taken? (case-insensitive)
     const user = await User.findOne({
         $or: [
             {username: {$regex: `^${escapeRegex(username)}$`, $options: 'i'}},
@@ -32,7 +32,6 @@ export const userRegister = async(req, res)=>{
         ]
     });
 
-    // if user present
     if(user) {
         if(user.username.toLowerCase() === username.toLowerCase()){
             return res.status(400).send({success:false, message:"Username already exists"});
@@ -40,10 +39,9 @@ export const userRegister = async(req, res)=>{
         return res.status(400).send({success:false, message:"Email already exists"});
     }
 
-    //hash password
     const hashPassword = await bcryptjs.hash(password,10);
 
-    //saving user in database (profile pic is generated, never taken from the client)
+    // profile pic is generated, never taken from the client
     const newUser = new User({
         fullname,
         username,
@@ -69,7 +67,7 @@ export const userRegister = async(req, res)=>{
 }
 
 //---------------------
-//login loggic
+// login
 //---------------------
 export const userLogin = async(req,res)=>{
     const{email,password} = req.body;
@@ -90,7 +88,7 @@ export const userLogin = async(req,res)=>{
 }
 
 //-------------------
-//logout loggic
+// logout
 //-------------------
 
 export const userLogout = async(req,res)=>{

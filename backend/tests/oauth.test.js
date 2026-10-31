@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { app } from '../app.js';
-import User from '../Models/userModels.js';
-import OAuthCode from '../Models/oauthCodeModel.js';
+import User from '../models/userModel.js';
+import OAuthCode from '../models/oauthCodeModel.js';
 import { startDb, stopDb, clearDb, auth } from './helpers.js';
 
 const CLIENT_URL = 'http://localhost:5173';

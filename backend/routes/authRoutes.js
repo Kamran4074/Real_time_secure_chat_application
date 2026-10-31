@@ -1,6 +1,6 @@
 import express from "express";
-import { userLogin, userLogout, userRegister } from "../routControllers/userRoutController.js";
-import { listProviders, startOAuth, oauthCallback, exchangeOAuthCode } from "../routControllers/oauthController.js";
+import { userLogin, userLogout, userRegister } from "../controllers/authController.js";
+import { listProviders, startOAuth, oauthCallback, exchangeOAuthCode } from "../controllers/oauthController.js";
 import isLogin from "../middleware/isLogin.js";
 import validate from "../middleware/validate.js";
 import { registerSchema, loginSchema, oauthExchangeSchema } from "../validation/schemas.js";

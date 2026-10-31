@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import { Spinner } from './ui/Button';
 
 // Free Render servers sleep when idle and take ~30-60s to wake up.
 // Ping the backend as soon as the site opens, so it starts waking while the
@@ -84,7 +85,7 @@ const ServerStatus = () => {
             flex items-center gap-3 px-4 py-2 rounded-lg border shadow-lg text-sm text-gray-900 ${styles[status]}`}>
             {status === 'waking' && (
                 <>
-                    <span className='loading loading-spinner loading-sm shrink-0'></span>
+                    <Spinner className='shrink-0 border-amber-300 border-t-amber-700' />
                     <span className='flex-1'>
                         {remaining > 0 ? (
                             <b>Server is starting… ready in ~{remaining}s</b>

@@ -1,12 +1,10 @@
 # keep secrets and unneeded files out of the backend image
 .env
 .env.*
-.git
-.github
-.vscode
 node_modules
-frontend
-backend/tests
+tests
 jest.config.js
+Dockerfile
+.dockerignore
 *.log
 *.md

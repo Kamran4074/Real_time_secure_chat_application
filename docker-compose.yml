@@ -1,7 +1,7 @@
 # Runs the whole app locally: MongoDB + backend + frontend
 #   docker compose up --build
 # Frontend: http://localhost:8080   Backend: http://localhost:3000
-# Needs JWT_SECRET in the .env file next to this file.
+# Secrets (JWT_SECRET, OAuth keys) are read from backend/.env
 
 services:
   mongo:
@@ -17,23 +17,21 @@ services:
       retries: 5
 
   backend:
-    build: .
+    build: ./backend
     restart: unless-stopped
     depends_on:
       mongo:
         condition: service_healthy
+    env_file:
+      - path: ./backend/.env
+        required: false # without it the backend exits with "JWT_SECRET is required"
+    # these override the values from backend/.env when running in Docker
     environment:
       PORT: 3000
       MONGODB_CONNECT: mongodb://mongo:27017/chatapp
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       CLIENT_ORIGINS: http://localhost:8080
-      # OAuth (optional): set the provider keys in .env to turn the buttons on
       SERVER_URL: http://localhost:3000
       CLIENT_URL: http://localhost:8080
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     ports:
       - "3000:3000"
 
