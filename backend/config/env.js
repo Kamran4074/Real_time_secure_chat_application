@@ -28,6 +28,9 @@ const envSchema = z.object({
     BREVO_API_KEY: blank(z.string().optional()),
     EMAIL_FROM: blank(z.email({ error: "EMAIL_FROM must be an email address" }).optional()),
     EMAIL_FROM_NAME: blank(z.string().optional()),
+    CLOUDINARY_CLOUD_NAME: blank(z.string().regex(/^[a-z0-9_-]+$/i, "CLOUDINARY_CLOUD_NAME must be the cloud name only, not a URL").optional()),
+    CLOUDINARY_API_KEY: blank(z.string().optional()),
+    CLOUDINARY_API_SECRET: blank(z.string().optional()),
 }).superRefine((env, ctx)=>{
     // half-configured OAuth is almost always a copy/paste mistake
     for(const provider of ['GOOGLE', 'GITHUB']){
@@ -56,6 +59,10 @@ export const loadEnv = ()=>{
     const env = result.data;
     if(Boolean(env.BREVO_API_KEY) !== Boolean(env.EMAIL_FROM)){
         logger.warn("Set both BREVO_API_KEY and EMAIL_FROM to send emails; password reset emails are disabled");
+    }
+    const cloudinary = [env.CLOUDINARY_CLOUD_NAME, env.CLOUDINARY_API_KEY, env.CLOUDINARY_API_SECRET].filter(Boolean).length;
+    if(cloudinary > 0 && cloudinary < 3){
+        logger.warn("Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET together; profile photo upload is disabled");
     }
     if(env.JWT_SECRET.length < 32){
         logger.warn("JWT_SECRET is short; use at least 32 random characters in production");

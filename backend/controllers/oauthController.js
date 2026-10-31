@@ -3,6 +3,7 @@ import User from "../models/userModel.js";
 import OAuthCode from "../models/oauthCodeModel.js";
 import jwtToken from "../utils/jwt.js";
 import escapeRegex from "../utils/escapeRegex.js";
+import { defaultAvatar } from "../utils/avatar.js";
 import { clientUrl } from "../utils/allowedOrigins.js";
 import logger, { errorMeta } from "../utils/logger.js";
 import { getProvider, getCredentials, isEnabled, enabledProviders, exchangeCode } from "../utils/oauthProviders.js";
@@ -67,7 +68,7 @@ const findOrCreateUser = async(name, profile)=>{
         username,
         email: profile.email.toLowerCase(),
         [idField]: profile.id,
-        profilepic: profile.avatar || `https://avatar.iran.liara.run/public?username=${encodeURIComponent(username)}`
+        profilepic: profile.avatar || defaultAvatar(username)
     });
     logger.info('User registered via OAuth', {provider: name, userId: created._id.toString()});
     return created;

@@ -26,6 +26,12 @@ export default {
           900: '#312e81',
         },
       },
+      keyframes: {
+        'slide-in': { from: { transform: 'translateX(-100%)' }, to: { transform: 'translateX(0)' } },
+      },
+      animation: {
+        'slide-in': 'slide-in .2s ease-out',
+      },
       boxShadow: {
         soft: '0 1px 2px rgba(15,23,42,.04), 0 12px 32px -8px rgba(15,23,42,.12)',
       },

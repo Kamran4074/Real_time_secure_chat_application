@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import axios from 'axios';
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
@@ -10,6 +10,7 @@ import Logo from '../../components/ui/Logo';
 import Avatar from '../../components/ui/Avatar';
 import { Spinner } from '../../components/ui/Button';
 import logger from '../../utils/logger';
+import ProfilePanel from './ProfilePanel';
 
 const SkeletonList = () => (
     <ul className='space-y-1 px-1' aria-hidden>
@@ -49,6 +50,7 @@ const Sidebar = () => {
     const [loading, setLoading] = useState(true);
     const [searching, setSearching] = useState(false);
     const [unreadMessages, setUnreadMessages] = useState({});
+    const [showProfile, setShowProfile] = useState(false);
     const { selectedConversation, setSelectedConversation, reset } = useConversation();
     const { onlineUser , socket} = useSocketContext();
     const selectedUserId = selectedConversation?._id;
@@ -136,9 +138,11 @@ const Sidebar = () => {
     }
 
     const list = searchUser ?? chatUser;
+    const closeProfile = useCallback(() => setShowProfile(false), []);
 
     return (
-        <div className='flex h-full w-full flex-col bg-white'>
+        <div className='relative flex h-full w-full flex-col overflow-hidden bg-white'>
+            {showProfile && <ProfilePanel onClose={closeProfile} />}
             <header className='px-5 pb-4 pt-5'>
                 <Logo />
                 <form onSubmit={handelSearchSubmit} role='search' className='relative mt-5'>
@@ -214,11 +218,14 @@ const Sidebar = () => {
             </nav>
 
             <footer className='flex items-center gap-3 border-t border-slate-200 px-5 py-3'>
-                <Avatar user={authUser} size='sm' online />
-                <div className='min-w-0 flex-1'>
-                    <p className='truncate text-sm font-semibold text-slate-900'>{authUser?.fullname || authUser?.username}</p>
-                    <p className='truncate text-xs text-slate-500'>@{authUser?.username}</p>
-                </div>
+                <button onClick={() => setShowProfile(true)} title='Open profile' aria-label='Open profile'
+                    className='-mx-2 flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-1 text-left transition hover:bg-slate-50'>
+                    <Avatar user={authUser} size='sm' online />
+                    <span className='min-w-0 flex-1'>
+                        <span className='block truncate text-sm font-semibold text-slate-900'>{authUser?.fullname || authUser?.username}</span>
+                        <span className='block truncate text-xs text-slate-500'>@{authUser?.username}</span>
+                    </span>
+                </button>
                 <button onClick={handelLogOut} title='Log out' aria-label='Log out'
                     className='grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-600'>
                     <FiLogOut className='h-[18px] w-[18px]' />

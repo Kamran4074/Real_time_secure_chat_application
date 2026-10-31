@@ -12,8 +12,9 @@ export const SocketContextProvider=({children})=>{
     const [socket , setSocket]= useState(null);
     const [onlineUser,setOnlineUser]=useState([]);
     const {authUser} = useAuth();
+    const token = authUser?.token;
     useEffect(()=>{
-        if(!authUser?.token){
+        if(!token){
             setSocket(null);
             setOnlineUser([]);
             return;
@@ -21,7 +22,7 @@ export const SocketContextProvider=({children})=>{
         // server verifies this token and takes the userId from it
         const newSocket = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000',{
             auth:{
-                token:authUser.token,
+                token,
             }
         })
         newSocket.on("getOnlineUsers",(users)=>{
@@ -29,7 +30,8 @@ export const SocketContextProvider=({children})=>{
         });
         setSocket(newSocket);
         return()=>newSocket.close();
-    },[authUser]);
+    // only the token matters: editing the profile must not reconnect the socket
+    },[token]);
     return(
     <SocketContext.Provider value={{socket , onlineUser}}>
         {children}

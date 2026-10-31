@@ -3,6 +3,7 @@ import bcryptjs from "bcryptjs";
 import jwtToken, { cookieOptions, revokeToken } from "../utils/jwt.js";
 import { disconnectToken } from "../socket/socket.js";
 import escapeRegex from "../utils/escapeRegex.js";
+import { defaultAvatar } from "../utils/avatar.js";
 import logger from "../utils/logger.js";
 
 // Input is validated and trimmed by registerSchema / loginSchema before these run (see routes/authRoutes.js).
@@ -48,7 +49,7 @@ export const userRegister = async(req, res)=>{
         email: email.toLowerCase(),
         gender,
         password:hashPassword,
-        profilepic: `https://avatar.iran.liara.run/public?username=${encodeURIComponent(username)}`
+        profilepic: defaultAvatar(username)
     });
 
     try {

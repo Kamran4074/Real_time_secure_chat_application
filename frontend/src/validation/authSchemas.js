@@ -42,6 +42,14 @@ export const resetPasswordSchema = z.object({
     message: "Passwords don't match",
 });
 
+// Profile edit (same rules as backend updateProfileSchema)
+export const MAX_BIO_LENGTH = 140;
+export const profileSchema = z.object({
+    fullname: required('Name').pipe(z.string().max(60, 'Keep it under 60 characters')),
+    username: required('Username').pipe(z.string().regex(USERNAME, '3–20 characters: letters, numbers, _ or .')),
+    bio: z.string().trim().max(MAX_BIO_LENGTH, `Keep it under ${MAX_BIO_LENGTH} characters`),
+});
+
 // the token in the emailed link: 64 hex characters
 export const isResetToken = (token) => /^[a-f0-9]{64}$/.test(token || '');
 

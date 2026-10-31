@@ -36,6 +36,12 @@ const userSchema = mongoose.Schema({
         required: true,
         default:""
     },
+    // short "about" line shown on the profile
+    bio:{
+        type: String,
+        maxlength: 140,
+        default: ""
+    },
     // OAuth provider account ids (sparse: only some users have them)
     googleId:{
         type: String,
