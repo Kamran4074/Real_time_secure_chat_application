@@ -5,9 +5,12 @@ import crypto from "crypto";
 // Needs CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET; without them photo upload is off.
 
 const FOLDER = 'chatwave/avatars';
-// applied by Cloudinary before storing: 400x400 crop around the face, so big photos are never stored
-const TRANSFORMATION = 'c_fill,g_face,w_400,h_400';
+// what the browser may send; whatever it is, Cloudinary stores it as WebP (smallest for photos)
 const ALLOWED_FORMATS = 'jpg,jpeg,png,webp';
+const STORED_FORMAT = 'webp';
+// applied by Cloudinary before storing: 400x400 crop around the face, automatic quality, converted to WebP.
+// (f_ must be inside the transformation: a separate "format" param is ignored when a transformation is given)
+const TRANSFORMATION = `c_fill,g_face,w_400,h_400,q_auto,f_${STORED_FORMAT}`;
 
 export const isUploadEnabled = ()=> Boolean(
     process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
@@ -44,5 +47,5 @@ export const isOwnAvatarUrl = (url, userId)=>{
     if(!cloud || typeof url !== 'string') return false;
     const prefix = `https://res.cloudinary.com/${cloud}/image/upload/`;
     if(!url.startsWith(prefix)) return false;
-    return new RegExp(`^(v\\d+/)?${FOLDER}/${userId}\\.(jpg|jpeg|png|webp)$`).test(url.slice(prefix.length));
+    return new RegExp(`^(v\\d+/)?${FOLDER}/${userId}\\.${STORED_FORMAT}$`).test(url.slice(prefix.length));
 };

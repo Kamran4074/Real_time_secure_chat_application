@@ -71,7 +71,7 @@ describe('ProfilePanel', () => {
     });
 
     test('uploads a photo to Cloudinary without sending our JWT, then saves the URL', async () => {
-        const url = 'https://res.cloudinary.com/demo/image/upload/v1/chatwave/avatars/u1.jpg';
+        const url = 'https://res.cloudinary.com/demo/image/upload/v1/chatwave/avatars/u1.webp';
         axios.post.mockResolvedValue({ data: {
             uploadUrl: 'https://api.cloudinary.com/v1_1/demo/image/upload', apiKey: 'k', signature: 's', public_id: 'u1'
         } });

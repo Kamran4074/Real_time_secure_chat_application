@@ -19,7 +19,7 @@ afterEach(withoutCloudinary);
 const getMe = (user)=> request(app).get('/api/user/me').set(auth(user.token));
 const patchMe = (user, body)=> request(app).patch('/api/user/me').set(auth(user.token)).send(body);
 const photoUrl = (userId, cloud = 'demo-cloud')=>
-    `https://res.cloudinary.com/${cloud}/image/upload/v1712345678/chatwave/avatars/${userId}.jpg`;
+    `https://res.cloudinary.com/${cloud}/image/upload/v1712345678/chatwave/avatars/${userId}.webp`;
 
 describe('GET /api/user/me', ()=>{
     test('returns your own profile with email but no secrets', async()=>{
@@ -111,10 +111,12 @@ describe('PATCH /api/user/me', ()=>{
             ['another cloud', null],
             ['another user\'s photo', 'other-user'],
             ['a path trick', 'path-trick'],
+            ['a non-WebP file', 'jpg'],
         ])('rejects %s', async(_, kind)=>{
             const url = kind === null ? photoUrl(me._id, 'other-cloud')
                 : kind === 'other-user' ? photoUrl('507f1f77bcf86cd799439011')
-                : kind === 'path-trick' ? `${photoUrl(me._id)}/../../x.jpg`
+                : kind === 'path-trick' ? `${photoUrl(me._id)}/../../x.webp`
+                : kind === 'jpg' ? photoUrl(me._id).replace('.webp', '.jpg')
                 : kind;
             const res = await patchMe(me, {profilepic:url});
             expect(res.status).toBe(400);
@@ -157,6 +159,7 @@ describe('POST /api/user/me/avatar-signature', ()=>{
             folder:'chatwave/avatars',
             public_id:me._id,
             allowed_formats:'jpg,jpeg,png,webp',
+            transformation:'c_fill,g_face,w_400,h_400,q_auto,f_webp',
             overwrite:'true'
         });
         expect(res.body.signature).toMatch(/^[a-f0-9]{40}$/);
