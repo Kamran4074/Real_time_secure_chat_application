@@ -5,12 +5,12 @@ import userRouter from './routes/userRoutes.js'
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import allowedOrigins from "./utils/allowedOrigins.js";
 import logger, { errorMeta } from "./utils/logger.js";
 import requestLogger from "./middleware/requestLogger.js";
 import { HttpError, notFound, errorHandler } from "./middleware/errorHandler.js";
+import { authLimiter, apiLimiter } from "./middleware/rateLimiters.js";
 
 import {app , server} from './socket/socket.js'
 
@@ -33,18 +33,8 @@ app.use(cors({
 app.use(express.json({limit:'10kb'}));
 app.use(cookieParser())
 
-// Slow down password guessing: 20 login/register attempts per 15 min per IP
-const authLimiter = rateLimit({
-    windowMs: 15*60*1000,
-    limit: Number(process.env.AUTH_RATE_LIMIT) || 20,
-    standardHeaders: 'draft-7',
-    legacyHeaders: false,
-    handler: (req, res, next, options)=>{
-        logger.warn('Auth rate limit hit', {requestId: req.id, ip: req.ip, path: req.originalUrl.split('?')[0]});
-        res.status(options.statusCode).send({success:false, message:"Too many attempts, please try again later"});
-    }
-});
-
+// rate limits: every API route per IP, stricter for auth (messages / search are limited per user in their routes)
+app.use('/api',apiLimiter)
 app.use('/api/auth/login',authLimiter)
 app.use('/api/auth/register',authLimiter)
 app.use('/api/auth/oauth',authLimiter)

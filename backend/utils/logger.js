@@ -7,9 +7,9 @@ const isTest = process.env.NODE_ENV === 'test';
 // JSON in production (Render/Docker log search), readable lines locally
 const useJson = (process.env.LOG_FORMAT || (isProd ? 'json' : 'pretty')) === 'json';
 
-const pretty = printf(({ timestamp, level, message, stack, ...meta }) => {
+const pretty = printf(({ timestamp: time, level, message, stack, ...meta }) => {
     const extra = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-    return `${timestamp} ${level} ${message}${extra}${stack ? `\n${stack}` : ''}`;
+    return `${time} ${level} ${message}${extra}${stack ? `\n${stack}` : ''}`;
 });
 
 const logger = winston.createLogger({

@@ -9,6 +9,15 @@ const makeUser = (name) => ({
     password: 'secret123',
 });
 
+// collects anything the Content-Security-Policy blocked on this page
+const watchCsp = (page) => {
+    const violations = [];
+    page.on('console', msg => {
+        if (msg.type() === 'error' && /Content Security Policy/i.test(msg.text())) violations.push(msg.text());
+    });
+    return violations;
+};
+
 const register = async (page, user) => {
     await page.goto('/register');
     await page.getByLabel('Full name').fill(user.fullname);
@@ -33,6 +42,14 @@ const openChatWith = async (page, user) => {
     await page.getByPlaceholder('Search people').press('Enter');
     await page.getByRole('button', { name: new RegExp(user.username) }).click();
 };
+
+test('the app is served with security headers', async ({ page }) => {
+    const res = await page.goto('/login');
+    const headers = res.headers();
+    expect(headers['content-security-policy']).toContain("script-src 'self'");
+    expect(headers['x-frame-options']).toBe('DENY');
+    expect(headers['x-content-type-options']).toBe('nosniff');
+});
 
 test.describe('auth', () => {
     test('a logged-out visitor is sent to the login page', async ({ page }) => {
@@ -67,6 +84,7 @@ test('two users chat in real time', async ({ browser }) => {
     // separate contexts = two different browsers with their own sessions
     const alicePage = await (await browser.newContext()).newPage();
     const bobPage = await (await browser.newContext()).newPage();
+    const cspViolations = [watchCsp(alicePage), watchCsp(bobPage)];
     await register(alicePage, alice);
     await register(bobPage, bob);
 
@@ -84,6 +102,9 @@ test('two users chat in real time', async ({ browser }) => {
     await bobPage.getByLabel('Type a message').fill('Hi Alice!');
     await bobPage.getByRole('button', { name: 'Send message' }).click();
     await expect(alicePage.getByText('Hi Alice!')).toBeVisible();
+
+    // API calls, the socket, fonts and avatars all passed the CSP
+    expect(cspViolations.flat()).toEqual([]);
 });
 
 test('HTML in a message is shown as text, not executed', async ({ browser }) => {

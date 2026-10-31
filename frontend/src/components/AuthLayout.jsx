@@ -50,13 +50,13 @@ const AuthLayout = ({ title, subtitle, children, footer }) => (
             </div>
 
             <ul className='relative grid max-w-md gap-5'>
-                {FEATURES.map(({ Icon, title, text }) => (
-                    <li key={title} className='flex gap-4'>
+                {FEATURES.map(({ Icon, title: heading, text }) => (
+                    <li key={heading} className='flex gap-4'>
                         <span className='grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/25'>
                             <Icon className='h-5 w-5' />
                         </span>
                         <div>
-                            <p className='font-semibold'>{title}</p>
+                            <p className='font-semibold'>{heading}</p>
                             <p className='text-sm text-white/75'>{text}</p>
                         </div>
                     </li>

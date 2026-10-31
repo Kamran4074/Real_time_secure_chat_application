@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Every request input is described here. validate() runs these before the controller,
 // so controllers only ever see clean, trimmed, correctly-typed data.
 
-export const OBJECT_ID = /^[a-f0-9]{24}$/i;
+const OBJECT_ID = /^[a-f0-9]{24}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME = /^[a-zA-Z0-9_.]{3,20}$/;
 export const MAX_MESSAGE_LENGTH = 2000;

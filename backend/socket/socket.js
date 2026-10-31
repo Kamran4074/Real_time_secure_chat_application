@@ -5,6 +5,7 @@ import { verifyToken, isTokenError } from '../utils/jwt.js';
 import allowedOrigins from '../utils/allowedOrigins.js';
 import { typingEventSchema } from '../validation/schemas.js';
 import logger, { errorMeta } from '../utils/logger.js';
+import { socketEventLimiter } from '../middleware/rateLimiters.js';
 
 const app = express();
 
@@ -45,8 +46,10 @@ export const disconnectToken = async(userId, jti)=>{
     sockets.filter(s => s.data.jti === jti).forEach(s => s.disconnect(true));
 };
 
-// Forward typing events only when the payload is { receiverId: <ObjectId> }; ignore anything else
+// Forward typing events only when the payload is { receiverId: <ObjectId> }; ignore anything else.
+// Events over the socket's rate limit are dropped, so one client can't flood another.
 const forwardTyping = (socket, outgoingEvent)=> (payload)=>{
+    if(!socket.data.allowEvent()) return;
     const result = typingEventSchema.safeParse(payload);
     if(!result.success) return;
     emitToUser(result.data.receiverId, outgoingEvent, {senderId: socket.userId});
@@ -55,6 +58,7 @@ const forwardTyping = (socket, outgoingEvent)=> (payload)=>{
 io.on('connection',(socket)=>{
     const userId = socket.userId;
 
+    socket.data.allowEvent = socketEventLimiter({limit: Number(process.env.SOCKET_EVENT_LIMIT) || 20, windowMs: 5000});
     socket.join(userId);
     onlineUsers.set(userId, (onlineUsers.get(userId) || 0) + 1);
     io.emit("getOnlineUsers",[...onlineUsers.keys()])

@@ -7,7 +7,7 @@ on:
 
 jobs:
   backend:
-    name: Backend tests
+    name: Backend lint and tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -23,6 +23,9 @@ jobs:
       - run: npm ci
       # fail on known high/critical vulnerabilities in packages that ship to production
       - run: npm audit --omit=dev --audit-level=high
+      # static code analysis: unused / undefined variables, dead code, unused files, exports and packages
+      - run: npm run lint
+      - run: npm run lint:unused
       # unit + integration + security tests on an in-memory MongoDB, fails below the coverage threshold
       - run: npm run test:coverage
 
@@ -43,6 +46,7 @@ jobs:
       - run: npm ci
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
+      - run: npm run lint:unused
       - run: npm run test:coverage
       - run: npm run build
 

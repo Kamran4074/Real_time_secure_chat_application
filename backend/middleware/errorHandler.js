@@ -14,7 +14,6 @@ export const notFound = (req, res)=>{
 };
 
 // Last middleware: every thrown / rejected error ends up here (Express 5 forwards async errors)
-// eslint-disable-next-line no-unused-vars
 export const errorHandler = (err, req, res, next)=>{
     if(res.headersSent) return next(err);
 

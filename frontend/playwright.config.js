@@ -26,7 +26,8 @@ export default defineConfig({
             timeout: 120000,
         },
         {
-            command: `npx vite --port ${WEB_PORT} --strictPort`,
+            // production build + Vercel's security headers (CSP), so the tests also prove the CSP doesn't break the app
+            command: `npx vite build && npx vite preview --port ${WEB_PORT} --strictPort`,
             url: `http://localhost:${WEB_PORT}`,
             env: { VITE_BACKEND_URL: `http://localhost:${API_PORT}` },
             reuseExistingServer: !process.env.CI,
