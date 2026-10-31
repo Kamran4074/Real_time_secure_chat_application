@@ -102,7 +102,7 @@ export const userLogin = async(req,res)=>{
             profilepic:user.profilepic,
             email:user.email,
             token,
-            message:"succesfully login"
+            message:"Logged in successfully"
         })
 
     } catch (error) {

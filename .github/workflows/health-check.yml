@@ -1,9 +1,17 @@
-name: Daily health check
+name: Keep-alive (peak hours)
+
+# Keeps the most important Render backends awake Mon-Sat, 11:00-16:30 IST,
+# when recruiters usually look. Outside these hours they sleep (saves free hours)
+# and the frontend shows a "waking up" banner instead.
+#
+# Render free = 750 hours/month for the whole account.
+# Each project here costs ~130 hours/month -> keep this list to 3-4 projects.
 
 on:
   schedule:
-    # every day at 06:00 UTC (11:30 IST)
-    - cron: "0 6 * * *"
+    # cron is in UTC; IST = UTC + 5:30. Every 14 min (Render sleeps after 15).
+    - cron: "30-59/14 5 * * 1-6" # 11:00-11:29 IST, Mon-Sat
+    - cron: "*/14 6-10 * * 1-6"  # 11:30-16:29 IST, Mon-Sat
   workflow_dispatch: # lets you run it manually from the Actions tab
 
 jobs:
@@ -11,20 +19,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      HEALTH_URL: ${{ vars.HEALTH_URL || 'https://chatwave-backend-biic.onrender.com/api/health' }}
+      # One health URL per line (your 3-4 most important projects)
+      URLS: |
+        https://chatwave-backend-biic.onrender.com/api/health
     steps:
-      - name: Ping backend
+      - name: Ping backends
         run: |
-          # Render free tier can take ~1 min to wake up, so retry a few times
-          for attempt in 1 2 3 4 5; do
-            status=$(curl -s -o response.json -w "%{http_code}" --max-time 90 "$HEALTH_URL" || echo "000")
-            echo "Attempt $attempt: HTTP $status"
-            if [ "$status" = "200" ]; then
-              cat response.json
-              exit 0
-            fi
-            sleep 30
+          check() {
+            local url=$1 status=000
+            # the first ping of the day hits a sleeping server (~1 min to wake), so retry
+            for attempt in 1 2 3 4 5; do
+              status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$url") || status=000
+              if [[ $status =~ ^[23] ]]; then
+                echo "OK   $url (HTTP $status)"
+                return 0
+              fi
+              sleep 20
+            done
+            echo "::error::DOWN $url (HTTP $status)"
+            return 1
+          }
+
+          # ping all projects in parallel
+          pids=()
+          for url in $URLS; do
+            check "$url" &
+            pids+=($!)
           done
-          echo "::error::Health check failed for $HEALTH_URL"
-          cat response.json 2>/dev/null || true
-          exit 1
+
+          failed=0
+          for pid in "${pids[@]}"; do
+            wait "$pid" || failed=1
+          done
+          exit $failed

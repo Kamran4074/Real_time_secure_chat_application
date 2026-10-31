@@ -7,6 +7,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
+import allowedOrigins from "./utils/allowedOrigins.js";
 
 import {app , server} from './socket/socket.js'
 
@@ -16,7 +17,6 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
     origin: function(origin, callback) {
-        const allowedOrigins = ['http://localhost:5173', 'https://chatwave-azure.vercel.app'];
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {

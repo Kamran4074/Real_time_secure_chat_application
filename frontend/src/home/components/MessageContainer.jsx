@@ -1,12 +1,40 @@
-import React, { useEffect, useState,useRef  } from 'react'
+import React, { Fragment, useEffect, useState, useRef } from 'react'
 import userConversation from '../../Zustans/useConversation';
 import { useAuth } from '../../context/AuthContext';
-import { TiMessages } from "react-icons/ti";
-import { IoArrowBackSharp, IoSend } from 'react-icons/io5';
+import { HiChatBubbleLeftRight } from 'react-icons/hi2';
+import { FiArrowLeft, FiSend } from 'react-icons/fi';
 import axios from 'axios';
 import { useSocketContext } from '../../context/SocketContext';
 import notify from '../../assets/sound/notification.mp3';
 import { toast } from 'react-toastify';
+import Avatar from '../../components/ui/Avatar';
+import TypingDots from '../../components/ui/TypingDots';
+import { Spinner } from '../../components/ui/Button';
+
+const MAX_LENGTH = 2000;
+
+const dayLabel = (date) => {
+    const d = new Date(date);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString('en-IN', {
+        day: 'numeric', month: 'short',
+        year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric'
+    });
+};
+
+const timeLabel = (date) => new Date(date).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+
+const MessagesSkeleton = () => (
+    <div className='space-y-4' aria-hidden>
+        {['w-1/2', 'w-1/3 ml-auto', 'w-2/5', 'w-1/2 ml-auto', 'w-1/4'].map((cls, i) => (
+            <div key={i} className={`h-10 animate-pulse rounded-2xl bg-slate-200/70 ${cls}`} />
+        ))}
+    </div>
+);
 
 const MessageContainer = ({ onBackUser }) => {
     const { messages, selectedConversation, setMessage, addMessage } = userConversation();
@@ -16,10 +44,12 @@ const MessageContainer = ({ onBackUser }) => {
     const [sending , setSending] = useState(false);
     const [sendData , setSendData] = useState("")
     const [isTyping, setIsTyping] = useState(false);
-    const lastMessageRef = useRef();
+    const bottomRef = useRef();
+    const inputRef = useRef();
     const typingTimeoutRef = useRef(null);
 
     const isOnline = onlineUser.includes(selectedConversation?._id);
+    const name = selectedConversation?.fullname || selectedConversation?.username;
 
     useEffect(()=>{
       const handleNewMessage = (newMessage)=>{
@@ -28,6 +58,7 @@ const MessageContainer = ({ onBackUser }) => {
           const sound = new Audio(notify);
           sound.play().catch(()=>{});
           addMessage(newMessage)
+          setIsTyping(false)
         }
       }
 
@@ -60,45 +91,42 @@ const MessageContainer = ({ onBackUser }) => {
     },[socket, selectedConversation])
 
     useEffect(()=>{
-        setTimeout(()=>{
-            lastMessageRef?.current?.scrollIntoView({behavior:"smooth"})
-        },100)
-    },[messages])
+        bottomRef.current?.scrollIntoView({behavior:"smooth", block:"end"})
+    },[messages, isTyping])
 
     useEffect(() => {
         const getMessages = async () => {
             setLoading(true);
             try {
                 const get = await axios.get(`/api/message/${selectedConversation?._id}`);
-                const data = await get.data;
-                if (data.success === false) {
-                    setLoading(false);
-                    console.log(data.message);
-                }
-                setLoading(false);
-                setMessage(data);
+                setMessage(get.data);
             } catch (error) {
-                setLoading(false);
                 console.log(error);
-
+            } finally {
+                setLoading(false);
             }
         }
 
-        if (selectedConversation?._id) getMessages();
+        setIsTyping(false);
+        setSendData('');
+        if (selectedConversation?._id) {
+            getMessages();
+            inputRef.current?.focus();
+        }
     }, [selectedConversation?._id, setMessage])
 
     const handelMessages=(e)=>{
         setSendData(e.target.value)
-        
+
         // Emit typing event
         if(e.target.value.length > 0 && selectedConversation?._id){
           socket?.emit('typing', {receiverId: selectedConversation._id});
-          
+
           // Clear previous timeout
           if(typingTimeoutRef.current){
             clearTimeout(typingTimeoutRef.current);
           }
-          
+
           // Stop typing after 2 seconds of inactivity
           typingTimeoutRef.current = setTimeout(()=>{
             socket?.emit('stopTyping', {receiverId: selectedConversation._id});
@@ -108,119 +136,143 @@ const MessageContainer = ({ onBackUser }) => {
 
     const handelSubmit=async(e)=>{
         e.preventDefault();
-        
+        if(!sendData.trim() || sending) return;
+
         // Stop typing indicator when sending
         socket?.emit('stopTyping', {receiverId: selectedConversation._id});
         if(typingTimeoutRef.current){
           clearTimeout(typingTimeoutRef.current);
         }
-        
+
         setSending(true);
         try {
             const res =await axios.post(`/api/message/send/${selectedConversation?._id}`,{messages:sendData});
-            setSending(false);
             setSendData('')
             addMessage(res.data)
         } catch (error) {
-            setSending(false);
             toast.error(error?.response?.data?.message || "Message not sent")
+        } finally {
+            setSending(false);
+            inputRef.current?.focus();
         }
     }
 
-    return (
-        <div className='md:min-w-[500px] h-[99%] flex flex-col py-2'>
-        {selectedConversation === null ? (
-          <div className='flex items-center justify-center w-full h-full'>
-            <div className='px-4 text-center text-2xl text-gray-950 font-semibold 
-            flex flex-col items-center gap-2'>
-              <p className='text-2xl'>Welcome!!👋 {authUser.username}😉</p>
-              <p className="text-lg">Select a chat to start messaging</p>
-              <TiMessages className='text-6xl text-center' />
+    if (!selectedConversation) {
+        return (
+            <div className='chat-pattern flex h-full flex-col items-center justify-center bg-slate-50 px-6 text-center'>
+                <span className='grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-xl shadow-brand-500/30'>
+                    <HiChatBubbleLeftRight className='h-10 w-10' />
+                </span>
+                <h2 className='mt-6 text-2xl font-bold tracking-tight text-slate-900'>
+                    Welcome, {(authUser?.fullname || authUser?.username || '').split(' ')[0]} 👋
+                </h2>
+                <p className='mt-2 max-w-sm text-slate-500'>
+                    Pick a conversation from the list, or search for someone by name or username to start a new chat.
+                </p>
             </div>
-          </div>
-        ) : (
-          <>
-            <div className='flex justify-between gap-1 bg-sky-600 md:px-2 rounded-lg h-10 md:h-12'>
-              <div className='flex gap-2 md:justify-between items-center w-full'>
-                <div className='md:hidden ml-1 self-center'>
-                  <button onClick={() => onBackUser(true)} className='bg-white rounded-full px-2 py-1
-                   self-center'>
-                    <IoArrowBackSharp size={25} />
-                  </button>
-                </div>
-                <div className='flex justify-between mr-2 gap-2'>
-                  <div className={`avatar ${isOnline ? 'online' : 'offline'}`}>
-                    <div className='w-6 h-6 md:w-10 md:h-10 rounded-full'>
-                      <img 
-                        className='rounded-full w-full h-full cursor-pointer' 
-                        src={selectedConversation?.profilepic || `https://avatar.iran.liara.run/public?username=${selectedConversation?.username}`}
-                        alt='user avatar'
-                        onError={(e) => {
-                          e.target.src = `https://ui-avatars.com/api/?name=${selectedConversation?.username}&background=random`;
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className='flex flex-col justify-center'>
-                    <span className='text-gray-950 self-center text-sm md:text-xl font-bold'>
-                      {selectedConversation?.username}
-                    </span>
-                    {isTyping ? (
-                      <span className='text-xs text-blue-900 font-semibold underline decoration-blue-900'>typing...</span>
-                    ) : isOnline ? (
-                      <span className='text-xs text-green-900 font-semibold'>online</span>
-                    ) : (
-                      <span className='text-xs text-gray-700'>offline</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-      
-            <div className='flex-1 overflow-auto'>
-              {loading && (
-                <div className="flex w-full h-full flex-col items-center justify-center 
-                gap-4 bg-transparent">
-                  <div className="loading loading-spinner"></div>
-                </div>
-              )}
-              {!loading && messages?.length === 0 && (
-                <p className='text-center text-white items-center'>Send a message to 
-                start Conversation</p>
-              )}
-              {!loading && messages?.length > 0 && messages?.map((message) => (
-                <div className='text-white' key={message?._id} ref={lastMessageRef}>
-                  <div className={`chat ${message.senderId === authUser._id ? 'chat-end' : 'chat-start'}`}>
-                    <div className='chat-image avatar'></div>
-                    <div className={`chat-bubble ${message.senderId === authUser._id ? 'bg-sky-600' : ''
+        );
+    }
 
-                    }`}>
-                      {message?.message}
-                    </div>
-                    <div className="chat-footer text-[10px] opacity-80">
-                      {new Date(message?.createdAt).toLocaleDateString('en-IN')}
-                      {new Date(message?.createdAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute:
-                         'numeric' })}
-                    </div>
-                  </div>
+    return (
+        <div className='flex h-full flex-col'>
+            {/* header */}
+            <header className='flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 sm:px-5'>
+                <button onClick={onBackUser} aria-label='Back to chats'
+                    className='grid h-9 w-9 place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 md:hidden'>
+                    <FiArrowLeft className='h-5 w-5' />
+                </button>
+                <Avatar user={selectedConversation} online={isOnline} />
+                <div className='min-w-0'>
+                    <p className='truncate font-semibold text-slate-900'>{name}</p>
+                    <p className='text-xs' aria-live='polite'>
+                        {isTyping ? (
+                            <span className='font-medium text-brand-600'>typing…</span>
+                        ) : isOnline ? (
+                            <span className='font-medium text-emerald-600'>Online</span>
+                        ) : (
+                            <span className='text-slate-500'>Offline</span>
+                        )}
+                    </p>
                 </div>
-              ))}
+            </header>
+
+            {/* messages */}
+            <div className='chat-pattern scroll-thin flex-1 overflow-y-auto bg-slate-50 px-3 py-4 sm:px-6'>
+                {loading ? <MessagesSkeleton /> : messages?.length === 0 ? (
+                    <div className='flex h-full flex-col items-center justify-center text-center'>
+                        <Avatar user={selectedConversation} size='lg' />
+                        <p className='mt-4 font-semibold text-slate-900'>This is the start of your chat with {name}</p>
+                        <p className='mt-1 text-sm text-slate-500'>Say hi 👋</p>
+                    </div>
+                ) : (
+                    messages.map((message, i) => {
+                        const prev = messages[i - 1];
+                        const mine = message.senderId === authUser._id;
+                        const newDay = !prev ||
+                            new Date(prev.createdAt).toDateString() !== new Date(message.createdAt).toDateString();
+                        const grouped = !newDay && prev?.senderId === message.senderId;
+                        return (
+                            <Fragment key={message._id}>
+                                {newDay && (
+                                    <div className='my-4 flex justify-center'>
+                                        <span className='rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200'>
+                                            {dayLabel(message.createdAt)}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className={`flex ${mine ? 'justify-end' : 'justify-start'} ${grouped ? 'mt-1' : 'mt-3'}`}>
+                                    <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 shadow-sm sm:max-w-[70%] lg:max-w-[60%]
+                                        ${mine
+                                            ? 'rounded-br-md bg-brand-600 text-white'
+                                            : 'rounded-bl-md bg-white text-slate-800 ring-1 ring-slate-200'}`}>
+                                        <p className='whitespace-pre-wrap break-words text-[15px] leading-relaxed'>{message.message}</p>
+                                        <p className={`mt-0.5 text-right text-[11px] ${mine ? 'text-brand-100' : 'text-slate-400'}`}>
+                                            {timeLabel(message.createdAt)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </Fragment>
+                        );
+                    })
+                )}
+                {isTyping && !loading && (
+                    <div className='mt-3 flex'>
+                        <span className='rounded-2xl rounded-bl-md bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200'>
+                            <TypingDots />
+                        </span>
+                    </div>
+                )}
+                <div ref={bottomRef} />
             </div>
-            <form onSubmit={handelSubmit} className='rounded-full text-black'>
-            <div className='w-full rounded-full flex items-center bg-white'>
-              <input value={sendData} onChange={handelMessages} required maxLength={2000} id='message' type='text'
-              className='w-full bg-transparent outline-none px-4 rounded-full'/>
-              <button type='submit'>
-                {sending ? <div className='loading loading-spinner'></div>:
-                <IoSend size={25}
-                className='text-sky-700 cursor-pointer rounded-full bg-gray-800 w-10 h-auto p-1'/>
-                }
-              </button>
-            </div>
+
+            {/* composer */}
+            <form onSubmit={handelSubmit} className='flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white p-3 sm:px-5'>
+                <div className='relative flex-1'>
+                    <input
+                        ref={inputRef}
+                        value={sendData}
+                        onChange={handelMessages}
+                        maxLength={MAX_LENGTH}
+                        autoComplete='off'
+                        placeholder={`Message ${name}`}
+                        aria-label='Type a message'
+                        className={`h-12 w-full rounded-full border border-transparent bg-slate-100 pl-5 text-[15px] text-slate-900
+                        placeholder:text-slate-400 transition focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/15
+                        ${sendData.length > MAX_LENGTH - 200 ? 'pr-24' : 'pr-5'}`}
+                    />
+                    {sendData.length > MAX_LENGTH - 200 && (
+                        <span className='absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400'>
+                            {sendData.length}/{MAX_LENGTH}
+                        </span>
+                    )}
+                </div>
+                <button type='submit' disabled={!sendData.trim() || sending} aria-label='Send message'
+                    className='grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-600 text-white shadow-md shadow-brand-600/30 transition
+                    hover:bg-brand-700 active:scale-95 disabled:bg-slate-300 disabled:shadow-none'>
+                    {sending ? <Spinner /> : <FiSend className='-ml-0.5 h-5 w-5' />}
+                </button>
             </form>
-          </>
-        )}
-      </div>
+        </div>
     )
 }
 

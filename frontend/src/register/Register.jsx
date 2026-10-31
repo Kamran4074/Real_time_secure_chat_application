@@ -2,7 +2,14 @@ import axios from 'axios';
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify';
+import { FiUser, FiAtSign, FiMail, FiLock } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
+import OAuthButtons, { Divider } from '../components/OAuthButtons';
+import TextField from '../components/ui/TextField';
+import Button from '../components/ui/Button';
+
+const GENDERS = ['male', 'female', 'other'];
 
 const Register = () => {
     const navigate = useNavigate()
@@ -15,10 +22,9 @@ const Register = () => {
             ...inputData , [e.target.id]:e.target.value
         })
     }
-    const selectGender=(selectGender)=>{
-        setInputData((prev)=>({
-            ...prev , gender:selectGender === inputData.gender ? '' : selectGender
-        }))
+
+    const selectGender=(gender)=>{
+        setInputData((prev)=>({ ...prev , gender }))
     }
 
     const handelSubmit=async(e)=>{
@@ -26,7 +32,7 @@ const Register = () => {
         setLoading(true)
         if(inputData.password !== inputData.confpassword){
             setLoading(false)
-            return toast.error("Password Dosen't match")
+            return toast.error("Passwords don't match")
         }
         if((inputData.password || '').length < 6){
             setLoading(false)
@@ -45,7 +51,7 @@ const Register = () => {
             localStorage.setItem('chatapp',JSON.stringify(data))
             setAuthUser(data)
             setLoading(false)
-            navigate('/login')
+            navigate('/')
         } catch (error) {
             setLoading(false)
             toast.error(error?.response?.data?.message || "Registration failed")
@@ -53,119 +59,54 @@ const Register = () => {
     }
 
   return (
-    <div className='flex flex-col items-center justify-center mix-w-full mx-auto'>
-            <div className='w-full p-6 rounded-lg shadow-lg
-          bg-gray-400 bg-clip-padding
-           backderop-filter backdrop-blur-lg bg-opacity-0'>
-  <h1 className='text-3xl font-bold text-center text-gray-300'>Register
-                    <span className='text-gray-950'> Chatters </span>
-                    </h1>
-                    <form onSubmit={handelSubmit} className='flex flex-col text-black'>
-                    <div>
-                            <label className='label p-2' >
-                                <span className='font-bold text-gray-950 text-xl label-text'>fullname :</span>
-                            </label>
-                            <input
-                                id='fullname'
-                                type='text'
-                                onChange={handelInput}
-                                placeholder='Enter Full Name'
-                                required
-                                className='w-full input input-bordered h-10 text-gray-900' />
-                        </div>
-                        <div>
-                            <label className='label p-2' >
-                                <span className='font-bold text-gray-950 text-xl label-text'>username :</span>
-                            </label>
-                            <input
-                                id='username'
-                                type='text'
-                                onChange={handelInput}
-                                placeholder='Enter UserName'
-                                required
-                                className='w-full input input-bordered h-10 text-gray-900' />
-                        </div>
-                        <div>
-                            <label className='label p-2' >
-                                <span className='font-bold text-gray-950 text-xl label-text'>Email :</span>
-                            </label>
-                            <input
-                                id='email'
-                                type='email'
-                                onChange={handelInput}
-                                placeholder='Enter email'
-                                required
-                                className='w-full input input-bordered h-10 text-gray-900' />
-                        </div>
-                        <div>
-                            <label className='label p-2' >
-                                <span className='font-bold text-gray-950 text-xl label-text'>Password :</span>
-                            </label>
-                            <input
-                                id='password'
-                                type='password'
-                                onChange={handelInput}
-                                placeholder='Enter password'
-                                required
-                                className='w-full input input-bordered h-10 text-gray-900' />
-                        </div>
-                        <div>
-                            <label className='label p-2' >
-                                <span className='font-bold text-gray-950 text-xl label-text'>Conf.Password :</span>
-                            </label>
-                            <input
-                                id='confpassword'
-                                type='password'
-                                onChange={handelInput}
-                                placeholder='Enter Confirm password'
-                                required
-                                className='w-full input input-bordered h-10 text-gray-900' />
-                        </div>
+    <AuthLayout
+        title='Create your account'
+        subtitle='Start chatting in less than a minute.'
+        footer={<>Already have an account?{' '}
+            <Link to='/login' className='font-semibold text-brand-600 hover:text-brand-700'>Log in</Link>
+        </>}
+    >
+        <OAuthButtons />
+        <Divider text='or sign up with email' />
+        <form onSubmit={handelSubmit} className='space-y-4'>
+            <TextField id='fullname' label='Full name' icon={FiUser}
+                placeholder='Aisha Khan' autoComplete='name' required onChange={handelInput} />
+            <TextField id='username' label='Username' icon={FiAtSign}
+                placeholder='aisha_k' autoComplete='username' required minLength={3} maxLength={20}
+                pattern='[a-zA-Z0-9_.]{3,20}' title='3-20 letters, numbers, _ or .'
+                hint='3–20 characters: letters, numbers, _ or .' onChange={handelInput} />
+            <TextField id='email' type='email' label='Email' icon={FiMail}
+                placeholder='you@example.com' autoComplete='email' required onChange={handelInput} />
+            <div className='grid gap-4 sm:grid-cols-2'>
+                <TextField id='password' type='password' label='Password' icon={FiLock}
+                    placeholder='Min. 6 chars' autoComplete='new-password' required minLength={6} maxLength={72}
+                    onChange={handelInput} />
+                <TextField id='confpassword' type='password' label='Confirm password' icon={FiLock}
+                    placeholder='Repeat it' autoComplete='new-password' required onChange={handelInput} />
+            </div>
 
-                        <div
-                         id='gender' className="flex gap-2">
-                        <label className="cursor-pointer label flex gap-2">
-                        <span className="label-text font-semibold text-gray-950">male</span>
-                        <input 
-                        onChange={()=>selectGender('male')}
-                        checked={inputData.gender === 'male'}
-                        type='checkbox' 
-                        className="checkbox checkbox-info"/>
+            <fieldset>
+                <legend className='mb-1.5 block text-sm font-medium text-slate-700'>Gender</legend>
+                <div className='grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1'>
+                    {GENDERS.map(g => (
+                        <label key={g} className='cursor-pointer'>
+                            <input type='radio' name='gender' value={g} className='peer sr-only'
+                                checked={inputData.gender === g} onChange={() => selectGender(g)} />
+                            <span className='block rounded-lg py-2 text-center text-sm font-medium capitalize text-slate-600 transition
+                                hover:text-slate-900 peer-checked:bg-white peer-checked:text-brand-700 peer-checked:shadow-sm
+                                peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500'>
+                                {g}
+                            </span>
                         </label>
-                        <label className="cursor-pointer label flex gap-2">
-                        <span className="label-text font-semibold text-gray-950">female</span>
-                        <input 
-                        checked={inputData.gender === 'female'}
-                        onChange={()=>selectGender('female')}
-                        type='checkbox' 
-                        className="checkbox checkbox-info"/>
-                        </label>
-                        </div>
+                    ))}
+                </div>
+            </fieldset>
 
-                        <button type='submit'
-                            className='mt-4 self-center 
-                            w-auto px-2 py-1 bg-gray-950 
-                            text-lg hover:bg-gray-900 
-                            text-white rounded-lg hover: scale-105'>
-                           {loading ? "loading..":"Register"}
-                            </button>
-                    </form>
-
-                    <div className='pt-2'>
-                        <p className='text-sm font-semibold
-                         text-gray-800'>
-                            Already have an Account ? <Link to={'/login'}>
-                                <span
-                                    className='text-gray-950 
-                            font-bold underline cursor-pointer
-                             hover:text-green-950'>
-                                    Login Now!!
-                                </span>
-                            </Link>
-                        </p>
-                    </div>
-           </div>
-           </div>
+            <Button type='submit' loading={loading} className='!mt-6'>
+                {loading ? 'Creating account…' : 'Create account'}
+            </Button>
+        </form>
+    </AuthLayout>
   )
 }
 

@@ -1,0 +1,12 @@
+# keep secrets and unneeded files out of the backend image
+.env
+.env.*
+.git
+.github
+.vscode
+node_modules
+frontend
+backend/tests
+jest.config.js
+*.log
+*.md

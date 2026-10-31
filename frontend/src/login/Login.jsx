@@ -1,9 +1,14 @@
 import axios from 'axios';
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { useNavigate } from 'react-router-dom';
+import { FiMail, FiLock } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
+import OAuthButtons, { Divider } from '../components/OAuthButtons';
+import TextField from '../components/ui/TextField';
+import Button from '../components/ui/Button';
+
 const Login = () => {
 
     const navigate = useNavigate();
@@ -34,62 +39,27 @@ const Login = () => {
             toast.error(error?.response?.data?.message || "Login failed")
         }
     }
+
     return (
-        <div className='flex flex-col items-center justify-center mix-w-full mx-auto'>
-            <div className='w-full p-6 rounded-lg shadow-lg
-          bg-gray-400 bg-clip-padding
-           backderop-filter backdrop-blur-lg bg-opacity-0'>
-                <h1 className='text-3xl font-bold text-center text-gray-300'>Login
-                    <span className='text-gray-950'> Chatters </span>
-                    </h1>
-                    <form onSubmit={handelSubmit} className='flex flex-col text-black'>
-                        <div>
-                            <label className='label p-2' >
-                                <span className='font-bold text-gray-950 text-xl label-text'>Email :</span>
-                            </label>
-                            <input
-                                id='email'
-                                type='email'
-                                onChange={handelInput}
-                                placeholder='Enter your email'
-                                required
-                                className='w-full input input-bordered h-10 text-gray-900' />
-                        </div>
-                        <div>
-                            <label className='label p-2' >
-                                <span className='font-bold text-gray-950 text-xl label-text'>Password :</span>
-                            </label>
-                            <input
-                                id='password'
-                                type='password'
-                                onChange={handelInput}
-                                placeholder='Enter your password'
-                                required
-                                className='w-full input input-bordered h-10 text-gray-900' />
-                        </div>
-                        <button type='submit'
-                            className='mt-4 self-center 
-                            w-auto px-2 py-1 bg-gray-950 
-                            text-lg hover:bg-gray-900 
-                            text-white rounded-lg hover: scale-105'>
-                           {loading ? "loading..":"Login"}
-                            </button>
-                    </form>
-                    <div className='pt-2'>
-                        <p className='text-sm font-semibold
-                         text-gray-800'>
-                            Don't have an Account ? <Link to={'/register'}>
-                                <span
-                                    className='text-gray-950 
-                            font-bold underline cursor-pointer
-                             hover:text-green-950'>
-                                    Register Now!!
-                                </span>
-                            </Link>
-                        </p>
-                    </div>
-            </div>
-        </div>
+        <AuthLayout
+            title='Welcome back'
+            subtitle='Log in to continue your conversations.'
+            footer={<>New to ChatWave?{' '}
+                <Link to='/register' className='font-semibold text-brand-600 hover:text-brand-700'>Create an account</Link>
+            </>}
+        >
+            <OAuthButtons />
+            <Divider text='or continue with email' />
+            <form onSubmit={handelSubmit} className='space-y-4'>
+                <TextField id='email' type='email' label='Email' icon={FiMail}
+                    placeholder='you@example.com' autoComplete='email' required onChange={handelInput} />
+                <TextField id='password' type='password' label='Password' icon={FiLock}
+                    placeholder='Enter your password' autoComplete='current-password' required onChange={handelInput} />
+                <Button type='submit' loading={loading} className='!mt-6'>
+                    {loading ? 'Logging in…' : 'Log in'}
+                </Button>
+            </form>
+        </AuthLayout>
     )
 }
 

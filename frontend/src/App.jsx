@@ -6,13 +6,15 @@ import Register from "./register/Register.jsx";
 import Home from "./home/Home.jsx";
 import { VerifyUser } from "./utils/VerifyUser.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
+import ServerStatus from "./components/ServerStatus.jsx";
 
 function App() {
   const {authUser} = useAuth();
   
   return (
     <>
-    <div className="p-2 w-screen h-screen flex items-center justify-center">
+    <div className="min-h-[100dvh] w-full">
+      <ServerStatus/>
       <Routes>
         <Route path="/login" element={!authUser ? <Login/> : <Navigate to='/'/>}/>
         <Route path="/register" element={!authUser ? <Register/> : <Navigate to='/'/>}/>
@@ -22,7 +24,7 @@ function App() {
         </Route>
         <Route path="*" element={<Navigate to={authUser ? '/' : '/login'}/>}/>
       </Routes>
-      <ToastContainer/>
+      <ToastContainer position="top-right" autoClose={3000} newestOnTop theme="light"/>
     </div>
 
     </>
