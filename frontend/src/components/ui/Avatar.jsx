@@ -14,20 +14,26 @@ const colorFor = (name = '') =>
 
 // Profile picture with a coloured-initials fallback and an optional online dot
 const Avatar = ({ user, size = 'md', online = false }) => {
+    const [loaded, setLoaded] = useState(false);
     const [failed, setFailed] = useState(false);
     const name = user?.fullname || user?.username || '';
 
-    useEffect(() => setFailed(false), [user?.profilepic]);
+    useEffect(() => {
+        setLoaded(false);
+        setFailed(false);
+    }, [user?.profilepic]);
 
     return (
         <span className={`relative inline-flex shrink-0 ${SIZES[size]}`}>
-            {user?.profilepic && !failed ? (
-                <img src={user.profilepic} alt='' onError={() => setFailed(true)}
-                    className='w-full h-full rounded-full object-cover bg-slate-100' />
-            ) : (
-                <span className={`w-full h-full rounded-full grid place-items-center font-semibold text-white ${colorFor(name)}`}>
-                    {initials(name)}
-                </span>
+            {/* initials show while the photo loads, and stay if it fails */}
+            <span className={`w-full h-full rounded-full grid place-items-center font-semibold text-white ${colorFor(name)}`}>
+                {initials(name)}
+            </span>
+            {user?.profilepic && !failed && (
+                <img src={user.profilepic} alt='' loading='lazy' referrerPolicy='no-referrer'
+                    onLoad={() => setLoaded(true)} onError={() => setFailed(true)}
+                    className={`absolute inset-0 w-full h-full rounded-full object-cover transition-opacity duration-300
+                        ${loaded ? 'opacity-100' : 'opacity-0'}`} />
             )}
             {online && (
                 <span className={`absolute bottom-0 right-0 ${DOT[size]} rounded-full bg-emerald-500 ring-2 ring-white`}

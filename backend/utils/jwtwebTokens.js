@@ -22,11 +22,17 @@ const jwtToken = (userId , res)=>{
     return token;
 }
 
+const tokenError = (message)=> Object.assign(new Error(message), {name:'AuthTokenError'});
+
+// Errors that mean "this token is not valid" (anything else, e.g. a database error, is a server problem)
+export const isTokenError = (err)=>
+    ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError', 'AuthTokenError'].includes(err?.name);
+
 // Verifies signature + expiry and rejects tokens that were logged out. Throws if invalid.
 export const verifyToken = async(token)=>{
     const decode = jwt.verify(token, process.env.JWT_SECRET);
-    if(!decode.jti) throw new Error("Token has no id"); // tokens issued before revocation existed
-    if(await RevokedToken.exists({jti:decode.jti})) throw new Error("Token revoked");
+    if(!decode.jti) throw tokenError("Token has no id"); // tokens issued before revocation existed
+    if(await RevokedToken.exists({jti:decode.jti})) throw tokenError("Token revoked");
     return decode;
 }
 

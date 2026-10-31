@@ -1,24 +1,30 @@
 import { useState } from 'react';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
 
-// Labelled input with optional leading icon, hint text and show/hide for passwords
-const TextField = ({ id, label, icon: Icon, type = 'text', hint, ...props }) => {
+// Labelled input with optional leading icon, hint / error text and show/hide for passwords
+const TextField = ({ id, label, icon: Icon, type = 'text', hint, error, ...props }) => {
     const [show, setShow] = useState(false);
     const isPassword = type === 'password';
+    const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
 
     return (
         <div>
             <label htmlFor={id} className='block text-sm font-medium text-slate-700 mb-1.5'>{label}</label>
             <div className='relative'>
                 {Icon && (
-                    <Icon aria-hidden className='pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400' />
+                    <Icon aria-hidden className={`pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px]
+                        ${error ? 'text-rose-400' : 'text-slate-400'}`} />
                 )}
                 <input
                     id={id}
                     type={isPassword && show ? 'text' : type}
-                    className={`w-full h-11 rounded-xl border border-slate-300 bg-white text-[15px] text-slate-900
-                        placeholder:text-slate-400 shadow-sm transition
-                        focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={describedBy}
+                    className={`w-full h-11 rounded-xl border bg-white text-[15px] text-slate-900
+                        placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-4
+                        ${error
+                            ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/15'
+                            : 'border-slate-300 focus:border-brand-500 focus:ring-brand-500/15'}
                         ${Icon ? 'pl-11' : 'pl-3.5'} ${isPassword ? 'pr-11' : 'pr-3.5'}`}
                     {...props}
                 />
@@ -31,7 +37,13 @@ const TextField = ({ id, label, icon: Icon, type = 'text', hint, ...props }) => 
                     </button>
                 )}
             </div>
-            {hint && <p className='mt-1.5 text-xs text-slate-500'>{hint}</p>}
+            {error ? (
+                <p id={`${id}-error`} role='alert' className='mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600'>
+                    <FiAlertCircle aria-hidden className='shrink-0' /> {error}
+                </p>
+            ) : hint && (
+                <p id={`${id}-hint`} className='mt-1.5 text-xs text-slate-500'>{hint}</p>
+            )}
         </div>
     );
 };

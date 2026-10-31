@@ -1,9 +1,10 @@
 import {Server} from 'socket.io';
 import http from 'http';
 import express from 'express';
-import mongoose from 'mongoose';
-import { verifyToken } from '../utils/jwtwebTokens.js';
+import { verifyToken, isTokenError } from '../utils/jwtwebTokens.js';
 import allowedOrigins from '../utils/allowedOrigins.js';
+import { typingEventSchema } from '../validation/schemas.js';
+import logger, { errorMeta } from '../utils/logger.js';
 
 const app = express();
 
@@ -27,6 +28,8 @@ io.use(async(socket, next)=>{
         socket.data.jti = decode.jti;
         next();
     } catch (error) {
+        if(isTokenError(error)) logger.debug('Socket rejected: invalid token', {ip: socket.handshake.address});
+        else logger.error('Socket auth failed', errorMeta(error));
         next(new Error("Unauthorized"));
     }
 });
@@ -42,7 +45,12 @@ export const disconnectToken = async(userId, jti)=>{
     sockets.filter(s => s.data.jti === jti).forEach(s => s.disconnect(true));
 };
 
-const isValidId =(id)=> typeof id === 'string' && mongoose.Types.ObjectId.isValid(id);
+// Forward typing events only when the payload is { receiverId: <ObjectId> }; ignore anything else
+const forwardTyping = (socket, outgoingEvent)=> (payload)=>{
+    const result = typingEventSchema.safeParse(payload);
+    if(!result.success) return;
+    emitToUser(result.data.receiverId, outgoingEvent, {senderId: socket.userId});
+};
 
 io.on('connection',(socket)=>{
     const userId = socket.userId;
@@ -50,21 +58,18 @@ io.on('connection',(socket)=>{
     socket.join(userId);
     onlineUsers.set(userId, (onlineUsers.get(userId) || 0) + 1);
     io.emit("getOnlineUsers",[...onlineUsers.keys()])
+    logger.debug('Socket connected', {userId, sockets: onlineUsers.get(userId)});
 
     // Typing indicator events
-    socket.on('typing', ({receiverId} = {}) => {
-        if(isValidId(receiverId)) emitToUser(receiverId, 'userTyping', {senderId: userId});
-    });
+    socket.on('typing', forwardTyping(socket, 'userTyping'));
+    socket.on('stopTyping', forwardTyping(socket, 'userStoppedTyping'));
 
-    socket.on('stopTyping', ({receiverId} = {}) => {
-        if(isValidId(receiverId)) emitToUser(receiverId, 'userStoppedTyping', {senderId: userId});
-    });
-
-    socket.on('disconnect',()=>{
+    socket.on('disconnect',(reason)=>{
         const count = (onlineUsers.get(userId) || 1) - 1;
         if(count <= 0) onlineUsers.delete(userId);
         else onlineUsers.set(userId, count);
         io.emit('getOnlineUsers',[...onlineUsers.keys()])
+        logger.debug('Socket disconnected', {userId, reason});
     });
 });
 

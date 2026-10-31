@@ -49,7 +49,9 @@ describe('POST /api/auth/register', ()=>{
         ['invalid email', {...validUser, email:'not-an-email'}, /Invalid email/],
         ['short password', {...validUser, password:'123'}, /6-72/],
         ['bad username', {...validUser, username:'a b'}, /Username/],
-        ['invalid gender', {...validUser, gender:'robot'}, /Invalid registration data/],
+        ['invalid gender', {...validUser, gender:'robot'}, /Invalid gender/],
+        ['full name over 60 chars', {...validUser, fullname:'a'.repeat(61)}, /Full name/],
+        ['password over 72 chars', {...validUser, password:'a'.repeat(73)}, /6-72/],
         ['non-string field (NoSQL injection)', {...validUser, email:{$ne:null}}, /All fields are required/],
     ])('rejects %s with 400', async(_, body, message)=>{
         const res = await request(app).post('/api/auth/register').send(body);

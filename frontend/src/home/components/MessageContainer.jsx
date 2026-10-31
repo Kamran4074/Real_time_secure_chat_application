@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import Avatar from '../../components/ui/Avatar';
 import TypingDots from '../../components/ui/TypingDots';
 import { Spinner } from '../../components/ui/Button';
+import logger from '../../utils/logger';
 
 const MAX_LENGTH = 2000;
 
@@ -101,7 +102,7 @@ const MessageContainer = ({ onBackUser }) => {
                 const get = await axios.get(`/api/message/${selectedConversation?._id}`);
                 setMessage(get.data);
             } catch (error) {
-                console.log(error);
+                logger.error('Could not load messages', error);
             } finally {
                 setLoading(false);
             }

@@ -1,0 +1,62 @@
+import { z } from 'zod';
+
+// Every request input is described here. validate() runs these before the controller,
+// so controllers only ever see clean, trimmed, correctly-typed data.
+
+export const OBJECT_ID = /^[a-f0-9]{24}$/i;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME = /^[a-zA-Z0-9_.]{3,20}$/;
+export const MAX_MESSAGE_LENGTH = 2000;
+
+// a string that must be present (also rejects objects like {"$ne": null})
+const required = (message)=> z.string({ error: message }).trim().min(1, message);
+
+const ALL_FIELDS = "All fields are required";
+const PASSWORD_RULE = "Password must be 6-72 characters";
+
+//----------------------
+// auth
+//----------------------
+export const registerSchema = z.object({
+    fullname: required(ALL_FIELDS).pipe(z.string().max(60, "Full name must be under 60 characters")),
+    username: required(ALL_FIELDS).pipe(z.string().regex(USERNAME, "Username must be 3-20 characters (letters, numbers, _ or .)")),
+    email: required(ALL_FIELDS).pipe(z.string().max(254, "Invalid email").regex(EMAIL, "Invalid email")),
+    gender: required(ALL_FIELDS).pipe(z.enum(['male', 'female', 'other'], { error: "Invalid gender" })),
+    // not trimmed: spaces are allowed in passwords; 72 = bcrypt's limit
+    password: z.string({ error: ALL_FIELDS }).min(1, ALL_FIELDS).min(6, PASSWORD_RULE).max(72, PASSWORD_RULE),
+});
+
+const LOGIN_REQUIRED = "Email and password are required";
+export const loginSchema = z.object({
+    email: required(LOGIN_REQUIRED).pipe(z.string().max(254, "Invalid email or password")),
+    password: z.string({ error: LOGIN_REQUIRED }).min(1, LOGIN_REQUIRED).max(200, "Invalid email or password"),
+});
+
+export const oauthExchangeSchema = z.object({
+    code: z.string({ error: "Invalid sign-in code" }).regex(/^[a-f0-9]{64}$/, "Invalid sign-in code"),
+});
+
+//----------------------
+// users & messages
+//----------------------
+export const userIdParams = z.object({
+    id: z.string().regex(OBJECT_ID, "Invalid user id"),
+});
+
+export const searchQuery = z.object({
+    search: z.string({ error: "Invalid search" }).trim().max(50, "Search is too long").optional().default(''),
+});
+
+export const sendMessageSchema = z.object({
+    messages: z.string({ error: "Message can't be empty" })
+        .trim()
+        .min(1, "Message can't be empty")
+        .max(MAX_MESSAGE_LENGTH, `Message must be under ${MAX_MESSAGE_LENGTH} characters`),
+});
+
+//----------------------
+// socket events
+//----------------------
+export const typingEventSchema = z.object({
+    receiverId: z.string().regex(OBJECT_ID),
+});

@@ -8,6 +8,7 @@ import AuthLayout from '../components/AuthLayout';
 import OAuthButtons, { Divider } from '../components/OAuthButtons';
 import TextField from '../components/ui/TextField';
 import Button from '../components/ui/Button';
+import { loginSchema, fieldErrors, serverFieldErrors } from '../validation/authSchemas';
 
 const Login = () => {
 
@@ -15,19 +16,30 @@ const Login = () => {
     const {setAuthUser} = useAuth();
 
     const [userInput, setUserInput] = useState({});
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false)
 
     const handelInput = (e) => {
         setUserInput({
             ...userInput, [e.target.id]: e.target.value
         })
+        // clear the error of the field being fixed
+        if (errors[e.target.id]) setErrors(({ [e.target.id]: _, ...rest }) => rest);
     }
 
     const handelSubmit = async (e) => {
         e.preventDefault();
+        const result = loginSchema.safeParse(userInput);
+        if (!result.success) {
+            const found = fieldErrors(result.error);
+            setErrors(found);
+            document.getElementById(Object.keys(found)[0])?.focus();
+            return;
+        }
+
         setLoading(true)
         try {
-            const login = await axios.post(`/api/auth/login`, userInput);
+            const login = await axios.post(`/api/auth/login`, result.data);
             const data = login.data;
             toast.success(data.message)
             localStorage.setItem('chatapp',JSON.stringify(data));
@@ -36,6 +48,7 @@ const Login = () => {
             navigate('/')
         } catch (error) {
             setLoading(false)
+            setErrors(serverFieldErrors(error?.response?.data))
             toast.error(error?.response?.data?.message || "Login failed")
         }
     }
@@ -50,10 +63,10 @@ const Login = () => {
         >
             <OAuthButtons />
             <Divider text='or continue with email' />
-            <form onSubmit={handelSubmit} className='space-y-4'>
-                <TextField id='email' type='email' label='Email' icon={FiMail}
+            <form onSubmit={handelSubmit} noValidate className='space-y-4'>
+                <TextField id='email' type='email' label='Email' icon={FiMail} error={errors.email}
                     placeholder='you@example.com' autoComplete='email' required onChange={handelInput} />
-                <TextField id='password' type='password' label='Password' icon={FiLock}
+                <TextField id='password' type='password' label='Password' icon={FiLock} error={errors.password}
                     placeholder='Enter your password' autoComplete='current-password' required onChange={handelInput} />
                 <Button type='submit' loading={loading} className='!mt-6'>
                     {loading ? 'Logging in…' : 'Log in'}

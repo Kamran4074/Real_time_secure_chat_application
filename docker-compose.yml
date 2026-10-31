@@ -27,6 +27,13 @@ services:
       MONGODB_CONNECT: mongodb://mongo:27017/chatapp
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       CLIENT_ORIGINS: http://localhost:8080
+      # OAuth (optional): set the provider keys in .env to turn the buttons on
+      SERVER_URL: http://localhost:3000
+      CLIENT_URL: http://localhost:8080
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     ports:
       - "3000:3000"
 

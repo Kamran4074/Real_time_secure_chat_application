@@ -131,6 +131,8 @@ describe('real-time messaging', ()=>{
         const aliceSocket = await connect(alice.token);
         aliceSocket.emit('typing', {receiverId:{$ne:null}});
         aliceSocket.emit('typing');
+        aliceSocket.emit('typing', null); // used to crash the destructuring handler
+        aliceSocket.emit('stopTyping', 'not-an-object');
         // server must stay up and keep this socket connected
         await new Promise(r => setTimeout(r, 100));
         expect(aliceSocket.connected).toBe(true);

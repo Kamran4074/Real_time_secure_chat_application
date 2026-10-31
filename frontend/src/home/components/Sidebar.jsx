@@ -9,6 +9,7 @@ import { useSocketContext } from '../../context/SocketContext';
 import Logo from '../../components/ui/Logo';
 import Avatar from '../../components/ui/Avatar';
 import { Spinner } from '../../components/ui/Button';
+import logger from '../../utils/logger';
 
 const SkeletonList = () => (
     <ul className='space-y-1 px-1' aria-hidden>
@@ -58,7 +59,7 @@ const Sidebar = () => {
             const chatters = await axios.get(`/api/user/currentchatters`)
             setChatUser(chatters.data)
         } catch (error) {
-            console.log(error);
+            logger.error('Could not load chats', error);
         } finally {
             setLoading(false)
         }
@@ -123,7 +124,7 @@ const Sidebar = () => {
                 const logout = await axios.post('/api/auth/logout')
                 toast.info(logout.data?.message)
             } catch (error) {
-                console.log(error);
+                logger.error('Logout request failed', error);
             } finally {
                 // always clear the local session, even if the request failed
                 localStorage.removeItem('chatapp')

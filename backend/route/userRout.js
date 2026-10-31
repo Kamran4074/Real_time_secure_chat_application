@@ -1,10 +1,12 @@
 import express from 'express';
 import isLogin from '../middleware/isLogin.js'
+import validate from '../middleware/validate.js';
+import { searchQuery } from '../validation/schemas.js';
 import { getCurrentChatters, getUserBySearch } from '../routControllers/userhandlerController.js';
 
 const router = express.Router();
 
-router.get('/search',isLogin,getUserBySearch);
-router.get('/currentchatters',isLogin,getCurrentChatters); 
+router.get('/search',isLogin,validate({query:searchQuery}),getUserBySearch);
+router.get('/currentchatters',isLogin,getCurrentChatters);
 
 export default router;

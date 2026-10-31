@@ -7,6 +7,7 @@ import Home from "./home/Home.jsx";
 import { VerifyUser } from "./utils/VerifyUser.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import ServerStatus from "./components/ServerStatus.jsx";
+import OAuthHandler from "./components/OAuthHandler.jsx";
 
 function App() {
   const {authUser} = useAuth();
@@ -15,6 +16,7 @@ function App() {
     <>
     <div className="min-h-[100dvh] w-full">
       <ServerStatus/>
+      <OAuthHandler/>
       <Routes>
         <Route path="/login" element={!authUser ? <Login/> : <Navigate to='/'/>}/>
         <Route path="/register" element={!authUser ? <Register/> : <Navigate to='/'/>}/>
