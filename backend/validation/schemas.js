@@ -58,6 +58,13 @@ export const userIdParams = z.object({
     id: z.string().regex(OBJECT_ID, "Invalid user id"),
 });
 
+const MESSAGE_PAGE_SIZE = 30;
+// one page of a chat: the newest messages, or those older than `before` (a message id)
+export const messagesQuery = z.object({
+    before: z.string().regex(OBJECT_ID, "Invalid cursor").optional(),
+    limit: z.coerce.number().int().min(1).max(50).default(MESSAGE_PAGE_SIZE),
+});
+
 export const searchQuery = z.object({
     search: z.string({ error: "Invalid search" }).trim().max(50, "Search is too long").optional().default(''),
 });

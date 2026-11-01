@@ -57,6 +57,10 @@ const userSchema = mongoose.Schema({
     passwordChangedAt:{
         type: Date
     },
+    // when the user's last tab closed (shown as "last seen ...")
+    lastSeen:{
+        type: Date
+    },
     // set by "log out from all devices"; tokens issued before it are rejected
     sessionsRevokedAt:{
         type: Date

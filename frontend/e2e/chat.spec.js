@@ -190,3 +190,29 @@ test('profile: edit the About text from the profile panel', async ({ page }) => 
     await page.getByRole('button', { name: 'Open profile' }).click();
     await expect(page.getByLabel('About')).toHaveValue('Testing ChatWave');
 });
+
+test('read receipts turn blue when read, and last seen shows after leaving', async ({ browser }) => {
+    const ivy = makeUser('Ivy');
+    const jon = makeUser('Jon');
+    const ivyPage = await (await browser.newContext()).newPage();
+    const jonContext = await browser.newContext();
+    const jonPage = await jonContext.newPage();
+    await register(ivyPage, ivy);
+    await register(jonPage, jon);
+
+    // Jon is online, so Ivy's message is delivered at once (✓✓)
+    await openChatWith(ivyPage, jon);
+    await ivyPage.getByLabel('Type a message').fill('did you get this?');
+    await ivyPage.getByRole('button', { name: 'Send message' }).click();
+    await expect(ivyPage.getByLabel('Delivered')).toBeVisible();
+
+    // Jon opens the chat: Ivy's ticks turn to "Seen" live
+    await jonPage.getByRole('button', { name: new RegExp(ivy.username) }).click();
+    await expect(jonPage.getByText('did you get this?')).toBeVisible();
+    await expect(ivyPage.getByLabel('Seen')).toBeVisible();
+
+    // Jon leaves: after the offline grace period Ivy sees "last seen just now"
+    await expect(ivyPage.getByRole('button', { name: /Contact info for/ })).toContainText('Online');
+    await jonContext.close();
+    await expect(ivyPage.getByText('last seen just now')).toBeVisible({ timeout: 10000 });
+});

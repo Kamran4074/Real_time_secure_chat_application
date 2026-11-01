@@ -3,6 +3,7 @@ import http from 'http';
 import express from 'express';
 import { verifyToken, isTokenError, isSessionRevoked, SESSION_FIELDS } from '../utils/jwt.js';
 import User from '../models/userModel.js';
+import Message from '../models/messageModel.js';
 import allowedOrigins from '../utils/allowedOrigins.js';
 import { typingEventSchema } from '../validation/schemas.js';
 import logger, { errorMeta } from '../utils/logger.js';
@@ -37,6 +38,9 @@ const loadHiddenUsers = async(userId)=>{
     return new Set([...(me?.blockedUsers || []), ...blockers.map(u => u._id)].map(String));
 };
 
+// has at least one tab open right now (a user in the offline grace period has 0)
+export const isOnline = (userId)=> (onlineUsers.get(userId.toString()) || 0) > 0;
+
 const isHidden = (userId, otherId)=> Boolean(hiddenUsers.get(userId)?.has(otherId));
 
 // Everyone gets the online list, minus users hidden from them by a block
@@ -70,6 +74,15 @@ io.use(async(socket, next)=>{
 // Each user joins a room named after their id, so all their tabs receive messages
 export const emitToUser = (userId, event, data)=>{
     io.to(userId.toString()).emit(event, data);
+};
+
+// A user just connected: messages that waited for them are now delivered; tell each sender (✓ -> ✓✓)
+const markDelivered = async(userId)=>{
+    const senders = await Message.find({recieverId: userId, deliveredAt: null}).distinct('senderId');
+    if(senders.length === 0) return;
+    const at = new Date();
+    await Message.updateMany({recieverId: userId, deliveredAt: null}, {deliveredAt: at});
+    senders.forEach(senderId => emitToUser(senderId, 'messagesDelivered', {receiverId: userId, at}));
 };
 
 // Kick out live sockets that were opened with a token that just got logged out
@@ -112,6 +125,7 @@ io.on('connection',(socket)=>{
     onlineUsers.set(userId, (onlineUsers.get(userId) || 0) + 1);
     hiddenUsers.set(userId, socket.data.hidden);
     broadcastOnlineUsers();
+    markDelivered(userId).catch(error => logger.error('Marking messages delivered failed', {userId, ...errorMeta(error)}));
     logger.debug('Socket connected', {userId, sockets: onlineUsers.get(userId)});
 
     // Typing indicator events
@@ -124,12 +138,19 @@ io.on('connection',(socket)=>{
         logger.debug('Socket disconnected', {userId, reason, sockets: count});
         if(count > 0) return; // still online in another tab: nothing changed for anyone
 
+        const lastSeen = new Date(); // when they actually left, not when the grace period ends
         const timer = setTimeout(()=>{
             offlineTimers.delete(userId);
             if(onlineUsers.get(userId) !== 0) return; // reconnected meanwhile
             onlineUsers.delete(userId);
             hiddenUsers.delete(userId);
             broadcastOnlineUsers();
+            // everyone still online (except across a block) can show "last seen ..." right away
+            for(const id of onlineUsers.keys()){
+                if(!isHidden(id, userId)) io.to(id).emit('lastSeen', {userId, at: lastSeen});
+            }
+            User.updateOne({_id: userId}, {lastSeen})
+                .catch(error => logger.error('Saving last seen failed', {userId, ...errorMeta(error)}));
         }, offlineDelayMs());
         timer.unref(); // never keeps the process alive on shutdown
         offlineTimers.set(userId, timer);

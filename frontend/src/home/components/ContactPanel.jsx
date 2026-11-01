@@ -7,7 +7,7 @@ import Avatar from '../../components/ui/Avatar';
 import { Spinner } from '../../components/ui/Button';
 
 // Contact info drawer over the chat (opened from the chat header)
-const ContactPanel = ({ user, online, onClose }) => {
+const ContactPanel = ({ user, online, lastSeen, onClose }) => {
     const blocked = useConversation((s) => s.blockedIds.includes(user._id));
     const { toggle, busy } = useBlockToggle();
     const name = user.fullname || user.username;
@@ -41,7 +41,7 @@ const ContactPanel = ({ user, online, onClose }) => {
                     <Avatar user={user} size='xl' online={online && !blocked} />
                     <p className='mt-4 text-xl font-semibold text-slate-900'>{name}</p>
                     <p className='text-slate-500'>@{user.username}</p>
-                    {!blocked && <OnlineStatus online={online} className='mt-2 text-sm' />}
+                    {!blocked && <OnlineStatus online={online} lastSeen={lastSeen} className='mt-2 text-sm' />}
                 </section>
 
                 <section className='border-b border-slate-200 px-6 py-5'>

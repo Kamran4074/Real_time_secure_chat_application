@@ -8,6 +8,8 @@ const conversationSchema = mongoose.Schema({
             ref: "User"
         }
     ],
+    // legacy: no longer written. Messages are found by their conversationId (indexed, paginated),
+    // because an ever-growing array would eventually hit MongoDB's 16 MB document limit.
     messages:{
         type:[{
             type:mongoose.Schema.Types.ObjectId,

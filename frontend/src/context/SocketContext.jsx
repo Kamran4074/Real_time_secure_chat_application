@@ -11,6 +11,7 @@ export const useSocketContext=()=>{
 export const SocketContextProvider=({children})=>{
     const [socket , setSocket]= useState(null);
     const [onlineUser,setOnlineUser]=useState([]);
+    const [lastSeen,setLastSeen]=useState({}); // {userId -> when they went offline, while this tab is open}
     const {authUser} = useAuth();
     const token = authUser?.token;
     useEffect(()=>{
@@ -28,12 +29,15 @@ export const SocketContextProvider=({children})=>{
         newSocket.on("getOnlineUsers",(users)=>{
             setOnlineUser(users)
         });
+        newSocket.on("lastSeen",({userId, at})=>{
+            setLastSeen((seen)=>({...seen, [userId]: at}))
+        });
         setSocket(newSocket);
         return()=>newSocket.close();
     // only the token matters: editing the profile must not reconnect the socket
     },[token]);
     return(
-    <SocketContext.Provider value={{socket , onlineUser}}>
+    <SocketContext.Provider value={{socket , onlineUser, lastSeen}}>
         {children}
     </SocketContext.Provider>
     )

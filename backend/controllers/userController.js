@@ -7,7 +7,7 @@ import logger from "../utils/logger.js";
 import { refreshBlocks } from "../socket/socket.js";
 
 // What other users may see about someone (never email, password, OAuth ids, ...)
-const PUBLIC_FIELDS = "fullname username profilepic bio";
+const PUBLIC_FIELDS = "fullname username profilepic bio lastSeen";
 
 // What you see about yourself
 const ownProfile = (user)=> ({
@@ -69,10 +69,14 @@ export const getCurrentChatters = async(req,res)=>{
 
     const user = await User.find({_id:{$in:otherParticipantsIDS}}).select(PUBLIC_FIELDS);
 
+    // like online status, last seen is hidden between users where one blocked the other
+    const hidden = new Set([...req.user.blockedUsers, ...await blockedBy(req.user._id)].map(String));
+
     // keep recent-chat order and drop users that no longer exist
     const users = otherParticipantsIDS
         .map(id => user.find(u => u._id.toString() === id.toString()))
-        .filter(Boolean);
+        .filter(Boolean)
+        .map(u => hidden.has(u._id.toString()) ? {...u.toObject(), lastSeen: undefined} : u);
 
     res.status(200).send(users)
 }

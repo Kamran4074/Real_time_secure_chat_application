@@ -7,6 +7,10 @@ const useConversation = create((set)=>({
     setMessage:(messages)=>set({messages}),
     // append using latest state, so messages arriving during an await aren't lost
     addMessage:(message)=>set((state)=>({messages:[...state.messages, message]})),
+    // an older page loaded by scrolling up
+    prependMessages:(older)=>set((state)=>({messages:[...older, ...state.messages]})),
+    // change some messages in place (read receipts)
+    updateMessages:(change)=>set((state)=>({messages:state.messages.map(change)})),
     // ids of users I blocked (sidebar loads them; chat header / settings change them)
     blockedIds:[],
     setBlockedIds:(blockedIds)=>set({blockedIds}),

@@ -1,8 +1,9 @@
-import { Fragment, useCallback, useEffect, useState, useRef } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useState, useRef } from 'react'
 import useConversation from '../../store/useConversation';
 import { useAuth } from '../../context/AuthContext';
 import { HiChatBubbleLeftRight } from 'react-icons/hi2';
 import { FiArrowLeft, FiSend } from 'react-icons/fi';
+import { BsCheck, BsCheckAll } from 'react-icons/bs';
 import axios from 'axios';
 import { useSocketContext } from '../../context/SocketContext';
 import notify from '../../assets/sound/notification.mp3';
@@ -16,6 +17,15 @@ import OnlineStatus from '../../components/ui/OnlineStatus';
 import useBlockToggle from '../useBlockToggle';
 
 const MAX_LENGTH = 2000;
+const PAGE_SIZE = 30;          // the backend's default page; a shorter page means nothing older
+const LOAD_OLDER_WITHIN_PX = 120; // start loading older messages this close to the top
+
+// ✓ sent, ✓✓ delivered, blue ✓✓ seen
+const Ticks = ({ message }) => {
+    if (message.seenAt) return <BsCheckAll aria-label='Seen' className='h-4 w-4 text-sky-300' />;
+    if (message.deliveredAt) return <BsCheckAll aria-label='Delivered' className='h-4 w-4 text-brand-100' />;
+    return <BsCheck aria-label='Sent' className='h-4 w-4 text-brand-100' />;
+};
 
 const dayLabel = (date) => {
     const d = new Date(date);
@@ -41,11 +51,11 @@ const MessagesSkeleton = () => (
 );
 
 const MessageContainer = ({ onBackUser }) => {
-    const { messages, selectedConversation, setMessage, addMessage, blockedIds } = useConversation();
+    const { messages, selectedConversation, setMessage, addMessage, prependMessages, updateMessages, blockedIds } = useConversation();
     const [showContact, setShowContact] = useState(false);
     const { toggle: toggleBlock, busy: unblocking } = useBlockToggle();
     const closeContact = useCallback(() => setShowContact(false), []);
-    const {socket, onlineUser} = useSocketContext();
+    const {socket, onlineUser, lastSeen: liveLastSeen = {}} = useSocketContext();
     const { authUser } = useAuth();
     const [loading, setLoading] = useState(false);
     const [sending , setSending] = useState(false);
@@ -55,10 +65,27 @@ const MessageContainer = ({ onBackUser }) => {
     const inputRef = useRef();
     const typingTimeoutRef = useRef(null);
     const typingSentRef = useRef(false); // "typing" already told for this burst of keystrokes
+    const listRef = useRef();
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingOlder, setLoadingOlder] = useState(false);
+    const loadingOlderRef = useRef(false);
+    const restoreScrollRef = useRef(null); // keeps the view still when older messages are added above
 
     const isOnline = onlineUser.includes(selectedConversation?._id);
     const blocked = blockedIds.includes(selectedConversation?._id);
     const name = selectedConversation?.fullname || selectedConversation?.username;
+    const lastSeen = liveLastSeen[selectedConversation?._id] || selectedConversation?.lastSeen;
+    const isSelected = (id) => useConversation.getState().selectedConversation?._id === id;
+
+    // I'm looking at this chat: their unseen messages become seen (sender's ticks turn blue)
+    const markSeen = useCallback((otherId) => {
+        if (document.visibilityState !== 'visible') return;
+        const unseen = useConversation.getState().messages.some(m => m.senderId === otherId && !m.seenAt);
+        if (!unseen) return;
+        const at = new Date().toISOString();
+        updateMessages(m => (m.senderId === otherId && !m.seenAt ? { ...m, seenAt: at } : m));
+        axios.post(`/api/message/seen/${otherId}`).catch(error => logger.error('Could not mark messages seen', error));
+    }, [updateMessages]);
 
     useEffect(()=>{
       const handleNewMessage = (newMessage)=>{
@@ -68,13 +95,42 @@ const MessageContainer = ({ onBackUser }) => {
           sound.play().catch(()=>{});
           addMessage(newMessage)
           setIsTyping(false)
+          markSeen(newMessage.senderId)
         }
       }
 
       socket?.on("newMessage", handleNewMessage)
 
       return ()=> socket?.off("newMessage", handleNewMessage);
-    },[socket,addMessage,selectedConversation])
+    },[socket,addMessage,selectedConversation,markSeen])
+
+    // read receipts for my messages in the open chat
+    useEffect(()=>{
+      const mine = (m)=> m.senderId === authUser?._id;
+      const handleDelivered = ({receiverId, at})=>{
+        if(receiverId !== selectedConversation?._id) return;
+        updateMessages(m => (mine(m) && !m.deliveredAt ? { ...m, deliveredAt: at } : m));
+      };
+      const handleSeen = ({receiverId, at})=>{
+        if(receiverId !== selectedConversation?._id) return;
+        updateMessages(m => (mine(m) && !m.seenAt ? { ...m, seenAt: at, deliveredAt: m.deliveredAt || at } : m));
+      };
+      socket?.on('messagesDelivered', handleDelivered);
+      socket?.on('messagesSeen', handleSeen);
+      return ()=>{
+        socket?.off('messagesDelivered', handleDelivered);
+        socket?.off('messagesSeen', handleSeen);
+      };
+    },[socket, selectedConversation?._id, authUser?._id, updateMessages])
+
+    // came back to this tab with the chat open: mark what arrived meanwhile as seen
+    useEffect(()=>{
+      const id = selectedConversation?._id;
+      if(!id) return;
+      const onVisible = ()=> document.visibilityState === 'visible' && markSeen(id);
+      document.addEventListener('visibilitychange', onVisible);
+      return ()=> document.removeEventListener('visibilitychange', onVisible);
+    },[selectedConversation?._id, markSeen])
 
     // Listen for typing events
     useEffect(()=>{
@@ -99,20 +155,36 @@ const MessageContainer = ({ onBackUser }) => {
       };
     },[socket, selectedConversation])
 
+    // follow new messages at the bottom (not when older ones are added at the top)
+    const lastMessageId = messages[messages.length - 1]?._id;
     useEffect(()=>{
         bottomRef.current?.scrollIntoView({behavior:"smooth", block:"end"})
-    },[messages, isTyping])
+    },[lastMessageId, isTyping])
+
+    // after older messages were added above, keep what the user was reading in the same place
+    useLayoutEffect(()=>{
+        const restore = restoreScrollRef.current;
+        const list = listRef.current;
+        if(!restore || !list) return;
+        list.scrollTop = list.scrollHeight - restore.height + restore.top;
+        restoreScrollRef.current = null;
+    },[messages])
 
     useEffect(() => {
+        const id = selectedConversation?._id;
         const getMessages = async () => {
             setLoading(true);
+            setHasMore(false);
             try {
-                const get = await axios.get(`/api/message/${selectedConversation?._id}`);
+                const get = await axios.get(`/api/message/${id}`);
+                if (!isSelected(id)) return; // switched chats while this was loading
                 setMessage(get.data);
+                setHasMore(get.data.length === PAGE_SIZE);
+                markSeen(id);
             } catch (error) {
                 logger.error('Could not load messages', error);
             } finally {
-                setLoading(false);
+                if (isSelected(id)) setLoading(false);
             }
         }
 
@@ -123,7 +195,33 @@ const MessageContainer = ({ onBackUser }) => {
             getMessages();
             inputRef.current?.focus();
         }
-    }, [selectedConversation?._id, setMessage])
+    }, [selectedConversation?._id, setMessage, markSeen])
+
+    // scrolling up: load the page before the oldest message shown
+    const loadOlder = async () => {
+        const id = selectedConversation?._id;
+        const oldest = useConversation.getState().messages[0];
+        if (!id || !oldest || !hasMore || loadingOlderRef.current) return;
+        loadingOlderRef.current = true;
+        setLoadingOlder(true);
+        try {
+            const { data } = await axios.get(`/api/message/${id}`, { params: { before: oldest._id } });
+            if (!isSelected(id)) return;
+            const list = listRef.current;
+            restoreScrollRef.current = list && { height: list.scrollHeight, top: list.scrollTop };
+            prependMessages(data);
+            setHasMore(data.length === PAGE_SIZE);
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Could not load older messages');
+        } finally {
+            loadingOlderRef.current = false;
+            setLoadingOlder(false);
+        }
+    };
+
+    const handleScroll = (e) => {
+        if (e.currentTarget.scrollTop < LOAD_OLDER_WITHIN_PX) loadOlder();
+    };
 
     // switching chats (or leaving) mid-typing: tell the previous person right away
     useEffect(()=>{
@@ -197,7 +295,7 @@ const MessageContainer = ({ onBackUser }) => {
 
     return (
         <div className='relative flex h-full flex-col overflow-hidden'>
-            {showContact && <ContactPanel user={selectedConversation} online={isOnline} onClose={closeContact} />}
+            {showContact && <ContactPanel user={selectedConversation} online={isOnline} lastSeen={lastSeen} onClose={closeContact} />}
             {/* header */}
             <header className='flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 sm:px-5'>
                 <button onClick={onBackUser} aria-label='Back to chats'
@@ -215,7 +313,7 @@ const MessageContainer = ({ onBackUser }) => {
                         ) : blocked ? (
                             <span className='text-slate-500'>Blocked</span>
                         ) : (
-                            <OnlineStatus online={isOnline} />
+                            <OnlineStatus online={isOnline} lastSeen={lastSeen} />
                         )}
                     </span>
                 </span>
@@ -223,7 +321,17 @@ const MessageContainer = ({ onBackUser }) => {
             </header>
 
             {/* messages */}
-            <div className='chat-pattern scroll-thin flex-1 overflow-y-auto bg-slate-50 px-3 py-4 sm:px-6'>
+            <div ref={listRef} onScroll={handleScroll}
+                className='chat-pattern scroll-thin flex-1 overflow-y-auto bg-slate-50 px-3 py-4 sm:px-6'>
+                {!loading && hasMore && (
+                    <div className='mb-2 flex justify-center'>
+                        <button onClick={loadOlder} disabled={loadingOlder}
+                            className='inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-70'>
+                            {loadingOlder && <Spinner className='border-slate-300 border-t-brand-600' />}
+                            {loadingOlder ? 'Loading older messages…' : 'Load older messages'}
+                        </button>
+                    </div>
+                )}
                 {loading ? <MessagesSkeleton /> : messages?.length === 0 ? (
                     <div className='flex h-full flex-col items-center justify-center text-center'>
                         <Avatar user={selectedConversation} size='lg' />
@@ -252,8 +360,9 @@ const MessageContainer = ({ onBackUser }) => {
                                             ? 'rounded-br-md bg-brand-600 text-white'
                                             : 'rounded-bl-md bg-white text-slate-800 ring-1 ring-slate-200'}`}>
                                         <p className='whitespace-pre-wrap break-words text-[15px] leading-relaxed'>{message.message}</p>
-                                        <p className={`mt-0.5 text-right text-[11px] ${mine ? 'text-brand-100' : 'text-slate-400'}`}>
+                                        <p className={`mt-0.5 flex items-center justify-end gap-1 text-[11px] ${mine ? 'text-brand-100' : 'text-slate-400'}`}>
                                             {timeLabel(message.createdAt)}
+                                            {mine && <Ticks message={message} />}
                                         </p>
                                     </div>
                                 </div>

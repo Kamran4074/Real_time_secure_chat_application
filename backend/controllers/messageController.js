@@ -1,7 +1,7 @@
 import Conversation from "../models/conversationModel.js";
 import Message from "../models/messageModel.js";
 import User from "../models/userModel.js";
-import { emitToUser } from "../socket/socket.js";
+import { emitToUser, isOnline } from "../socket/socket.js";
 
 // :id is a valid ObjectId and messages is a trimmed 1-2000 char string (see routes/messageRoutes.js)
 export const sendMessage =async(req,res)=>{
@@ -38,10 +38,12 @@ export const sendMessage =async(req,res)=>{
         senderId,
         recieverId: receiverId,
         message: messages,
-        conversationId: chats._id
+        conversationId: chats._id,
+        // receiver has a tab open: the socket push below reaches them now (✓✓)
+        deliveredAt: isOnline(receiverId) ? new Date() : null
     })
 
-    chats.messages.push(newMessages._id);
+    chats.updatedAt = new Date(); // moves this chat to the top of "recent chats"
 
     await Promise.all([chats.save(),newMessages.save()]);
 
@@ -52,14 +54,41 @@ export const sendMessage =async(req,res)=>{
 }
 
 
+// One page of the chat, oldest first. ?before=<message id> loads the page before it (scrolling up).
+// A page shorter than `limit` means there is nothing older.
 export const getMessages=async(req,res)=>{
     const {id:receiverId} = req.valid.params;
+    const {before, limit} = req.valid.query;
     const senderId = req.user._id;
 
     const chats = await Conversation.findOne({
         participants:{$all:[senderId , receiverId]}
-    }).populate("messages")
+    }).select('_id');
 
     if(!chats)  return res.status(200).send([]);
-    res.status(200).send(chats.messages)
+
+    // cursor (not skip): stays fast and correct even while new messages arrive
+    const page = await Message.find({
+        conversationId: chats._id,
+        ...(before && {_id: {$lt: before}})
+    }).sort({_id: -1}).limit(limit);
+
+    res.status(200).send(page.reverse())
+}
+
+// Receiver opened the chat: everything this sender sent them is seen (and so delivered too)
+export const markSeen = async(req,res)=>{
+    const {id:senderId} = req.valid.params;
+    const receiverId = req.user._id;
+    const at = new Date();
+
+    const unseen = {senderId, recieverId: receiverId, seenAt: null};
+    // seen implies delivered (keeps any earlier delivery time)
+    await Message.updateMany({...unseen, deliveredAt: null}, {deliveredAt: at});
+    const result = await Message.updateMany(unseen, {seenAt: at});
+    // turn the sender's ticks blue, live
+    if(result.modifiedCount > 0){
+        emitToUser(senderId, 'messagesSeen', {receiverId: receiverId.toString(), at});
+    }
+    res.status(200).send({success: true, seen: result.modifiedCount});
 }
