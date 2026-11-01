@@ -21,6 +21,7 @@ const envSchema = z.object({
     MESSAGE_RATE_LIMIT: blank(z.coerce.number().int().positive().optional()),
     SEARCH_RATE_LIMIT: blank(z.coerce.number().int().positive().optional()),
     SOCKET_EVENT_LIMIT: blank(z.coerce.number().int().positive().optional()),
+    PRESENCE_GRACE_MS: blank(z.coerce.number().int().positive().optional()),
     GOOGLE_CLIENT_ID: blank(z.string().optional()),
     GOOGLE_CLIENT_SECRET: blank(z.string().optional()),
     GITHUB_CLIENT_ID: blank(z.string().optional()),

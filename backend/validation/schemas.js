@@ -41,6 +41,12 @@ export const resetPasswordSchema = z.object({
     password: z.string({ error: PASSWORD_RULE }).min(6, PASSWORD_RULE).max(72, PASSWORD_RULE),
 });
 
+// currentPassword is optional: Google / GitHub accounts have none yet and use this to set one
+export const changePasswordSchema = z.object({
+    currentPassword: z.string({ error: "Invalid password" }).max(200, "Current password is incorrect").optional(),
+    newPassword: z.string({ error: PASSWORD_RULE }).min(6, PASSWORD_RULE).max(72, PASSWORD_RULE),
+});
+
 export const oauthExchangeSchema = z.object({
     code: z.string({ error: "Invalid sign-in code" }).regex(/^[a-f0-9]{64}$/, "Invalid sign-in code"),
 });

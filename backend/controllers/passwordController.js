@@ -6,6 +6,7 @@ import escapeRegex from "../utils/escapeRegex.js";
 import { clientUrl } from "../utils/allowedOrigins.js";
 import { sendEmail, passwordResetEmail } from "../utils/email.js";
 import { disconnectUser } from "../socket/socket.js";
+import jwtToken from "../utils/jwt.js";
 import logger, { errorMeta } from "../utils/logger.js";
 
 const TOKEN_TTL_MINUTES = 30;
@@ -68,4 +69,31 @@ export const resetPassword = async(req, res)=>{
 
     logger.info('Password reset', {requestId: req.id, userId: user._id.toString()});
     res.status(200).send({success:true, message:"Password updated, please log in"});
+};
+
+//----------------------
+// change (or, for Google / GitHub accounts, set) the password while logged in
+//----------------------
+// body validated by changePasswordSchema
+export const changePassword = async(req, res)=>{
+    const {currentPassword, newPassword} = req.body;
+    const user = await User.findById(req.user._id); // isLogin leaves the password out
+    const hadPassword = Boolean(user.password);
+
+    if(hadPassword && !(currentPassword && await bcryptjs.compare(currentPassword, user.password))){
+        logger.warn('Change password: wrong current password', {requestId: req.id, userId: user._id.toString()});
+        return res.status(400).send({success:false, message:"Current password is incorrect",
+            errors:[{field:'currentPassword', message:"Current password is incorrect"}]});
+    }
+
+    user.password = await bcryptjs.hash(newPassword, 10);
+    // every other session ends (isLogin / socket auth reject older tokens) ...
+    user.passwordChangedAt = new Date();
+    await user.save();
+    await PasswordReset.deleteMany({userId: user._id}); // pending reset links stop working too
+    disconnectUser(user._id);
+    // ... and this device gets a fresh token so it stays logged in
+    const token = jwtToken(user._id, res);
+    logger.info(hadPassword ? 'Password changed' : 'Password set', {requestId: req.id, userId: user._id.toString()});
+    res.status(200).send({success:true, message: hadPassword ? "Password changed" : "Password set", token});
 };

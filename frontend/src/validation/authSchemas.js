@@ -50,6 +50,20 @@ export const profileSchema = z.object({
     bio: z.string().trim().max(MAX_BIO_LENGTH, `Keep it under ${MAX_BIO_LENGTH} characters`),
 });
 
+// Change password while logged in; current password only for accounts that have one
+export const changePasswordSchema = (hasPassword) => z.object({
+    currentPassword: hasPassword
+        ? z.string().min(1, 'Enter your current password')
+        : z.string().optional(),
+    newPassword: z.string({ error: 'Password is required' })
+        .min(6, 'Use at least 6 characters')
+        .max(72, 'Use at most 72 characters'),
+    confpassword: z.string().min(1, 'Please confirm your password'),
+}).refine(data => data.newPassword === data.confpassword, {
+    path: ['confpassword'],
+    message: "Passwords don't match",
+});
+
 // the token in the emailed link: 64 hex characters
 export const isResetToken = (token) => /^[a-f0-9]{64}$/.test(token || '');
 

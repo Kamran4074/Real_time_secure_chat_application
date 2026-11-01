@@ -7,6 +7,8 @@ import Avatar from '../../components/ui/Avatar';
 import TextField from '../../components/ui/TextField';
 import Button, { Spinner } from '../../components/ui/Button';
 import { profileSchema, fieldErrors, serverFieldErrors, MAX_BIO_LENGTH } from '../../validation/authSchemas';
+import AccountSettings from './AccountSettings';
+import BlockedContacts from './BlockedContacts';
 
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_PHOTO_MB = 5;
@@ -33,7 +35,7 @@ const uploadToCloudinary = async (file) => {
 };
 
 // WhatsApp-style profile drawer that slides over the sidebar
-const ProfilePanel = ({ onClose }) => {
+const ProfilePanel = ({ onClose, onSignedOut }) => {
     const { authUser, setAuthUser } = useAuth();
     const [profile, setProfile] = useState(authUser);
     const [form, setForm] = useState(() => formFrom(authUser));
@@ -219,6 +221,9 @@ const ProfilePanel = ({ onClose }) => {
                         {saving ? 'Saving…' : 'Save changes'}
                     </Button>
                 </form>
+
+                <AccountSettings profile={profile} onSignedOut={onSignedOut} />
+                <BlockedContacts />
             </div>
         </div>
     );

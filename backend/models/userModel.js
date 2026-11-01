@@ -53,9 +53,22 @@ const userSchema = mongoose.Schema({
         unique: true,
         sparse: true
     },
-    // set on password reset; tokens issued before it are rejected
+    // set on password reset / change; tokens issued before it are rejected
     passwordChangedAt:{
         type: Date
+    },
+    // set by "log out from all devices"; tokens issued before it are rejected
+    sessionsRevokedAt:{
+        type: Date
+    },
+    // users this user has blocked (indexed: "who blocked me" is looked up too)
+    blockedUsers:{
+        type:[{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }],
+        default: [],
+        index: true
     }
 },{timestamps:true});
 

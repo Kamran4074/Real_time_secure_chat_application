@@ -27,7 +27,7 @@ const register = async (page, user) => {
     await page.getByLabel('Confirm password').fill(user.password);
     await page.getByText('female', { exact: true }).click();
     await page.getByRole('button', { name: 'Create account' }).click();
-    await expect(page.getByPlaceholder('Search people')).toBeVisible();
+    await expect(page.getByLabel('Search people by name or username')).toBeVisible();
 };
 
 const login = async (page, user) => {
@@ -38,8 +38,8 @@ const login = async (page, user) => {
 };
 
 const openChatWith = async (page, user) => {
-    await page.getByPlaceholder('Search people').fill(user.username);
-    await page.getByPlaceholder('Search people').press('Enter');
+    await page.getByLabel('Search people by name or username').fill(user.username);
+    await page.getByLabel('Search people by name or username').press('Enter');
     await page.getByRole('button', { name: new RegExp(user.username) }).click();
 };
 
@@ -90,7 +90,7 @@ test.describe('auth', () => {
         await expect(page).toHaveURL(/\/login$/);
 
         await login(page, user);
-        await expect(page.getByPlaceholder('Search people')).toBeVisible();
+        await expect(page.getByLabel('Search people by name or username')).toBeVisible();
     });
 });
 
@@ -143,4 +143,50 @@ test('HTML in a message is shown as text, not executed', async ({ browser }) => 
     await receiverPage.getByRole('button', { name: new RegExp(sender.username) }).click();
     await expect(receiverPage.getByText(payload)).toBeVisible();
     expect(alerted).toBe(false);
+});
+
+test('blocking stops messages, and unblocking allows them again', async ({ browser }) => {
+    const fay = makeUser('Fay');
+    const gus = makeUser('Gus');
+    const fayPage = await (await browser.newContext()).newPage();
+    const gusPage = await (await browser.newContext()).newPage();
+    await register(fayPage, fay);
+    await register(gusPage, gus);
+    fayPage.on('dialog', dialog => dialog.accept()); // "Block ...?" / "Unblock ...?"
+
+    // Gus starts a chat, Fay opens it and blocks Gus from the contact info
+    await openChatWith(gusPage, fay);
+    await gusPage.getByLabel('Type a message').fill('first');
+    await gusPage.getByRole('button', { name: 'Send message' }).click();
+    await fayPage.getByRole('button', { name: new RegExp(gus.username) }).click();
+    await fayPage.getByRole('button', { name: /Contact info for/ }).click();
+    await fayPage.getByRole('button', { name: `Block ${gus.fullname}` }).click();
+    await expect(fayPage.getByRole('button', { name: `Unblock ${gus.fullname}` })).toBeVisible();
+    await fayPage.getByRole('button', { name: 'Close contact info' }).click();
+
+    // Fay's composer is replaced; Gus's message is refused
+    await expect(fayPage.getByText(`You blocked ${gus.fullname}`)).toBeVisible();
+    await expect(fayPage.getByLabel('Type a message')).toHaveCount(0);
+    await gusPage.getByLabel('Type a message').fill('are you there?');
+    await gusPage.getByRole('button', { name: 'Send message' }).click();
+    await expect(gusPage.getByText("You can't message this user")).toBeVisible();
+
+    // unblock from the notice: messages flow again
+    await fayPage.getByRole('button', { name: 'Unblock', exact: true }).click();
+    await gusPage.getByLabel('Type a message').fill('back again');
+    await gusPage.getByRole('button', { name: 'Send message' }).click();
+    await expect(fayPage.getByText('back again')).toBeVisible();
+});
+
+test('profile: edit the About text from the profile panel', async ({ page }) => {
+    const hal = makeUser('Hal');
+    await register(page, hal);
+    await page.getByRole('button', { name: 'Open profile' }).click();
+    await page.getByLabel('About').fill('Testing ChatWave');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('Profile updated')).toBeVisible();
+
+    await page.reload();
+    await page.getByRole('button', { name: 'Open profile' }).click();
+    await expect(page.getByLabel('About')).toHaveValue('Testing ChatWave');
 });

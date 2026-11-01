@@ -36,9 +36,13 @@ export const verifyToken = async(token)=>{
     return decode;
 }
 
-// true when the password was reset after this token was issued (iat is in seconds)
-export const issuedBeforePasswordChange = (decode, user)=>
-    Boolean(user?.passwordChangedAt) && decode.iat < Math.floor(user.passwordChangedAt.getTime()/1000);
+// Fields isSessionRevoked() needs, for queries that select only a few fields
+export const SESSION_FIELDS = 'passwordChangedAt sessionsRevokedAt';
+
+// true when the password changed or "log out everywhere" happened after this token was issued (iat is in seconds)
+export const isSessionRevoked = (decode, user)=>
+    [user?.passwordChangedAt, user?.sessionsRevokedAt]
+        .some(date => date && decode.iat < Math.floor(date.getTime()/1000));
 
 export const revokeToken = async(decode)=>{
     await RevokedToken.updateOne(

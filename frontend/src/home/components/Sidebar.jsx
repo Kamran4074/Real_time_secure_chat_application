@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios';
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
@@ -11,6 +11,12 @@ import Avatar from '../../components/ui/Avatar';
 import { Spinner } from '../../components/ui/Button';
 import logger from '../../utils/logger';
 import ProfilePanel from './ProfilePanel';
+import OnlineStatus from '../../components/ui/OnlineStatus';
+
+const MIN_SEARCH = 2;      // same as the backend
+const SEARCH_DELAY_MS = 300; // search once typing pauses
+// "@kamran" and "kamran" search the same
+const toQuery = (input) => input.trim().replace(/^@/, '');
 
 const SkeletonList = () => (
     <ul className='space-y-1 px-1' aria-hidden>
@@ -34,7 +40,7 @@ const EmptyState = ({ searching }) => (
         <p className='mt-4 font-semibold text-slate-900'>{searching ? 'No people found' : 'No conversations yet'}</p>
         <p className='mt-1 text-sm text-slate-500'>
             {searching
-                ? 'Try a different name or username.'
+                ? 'Try the start of a name or username.'
                 : 'Search for someone by name or username to start chatting.'}
         </p>
     </div>
@@ -51,7 +57,8 @@ const Sidebar = () => {
     const [searching, setSearching] = useState(false);
     const [unreadMessages, setUnreadMessages] = useState({});
     const [showProfile, setShowProfile] = useState(false);
-    const { selectedConversation, setSelectedConversation, reset } = useConversation();
+    const { selectedConversation, setSelectedConversation, reset, setBlockedIds } = useConversation();
+    const latestSearch = useRef('');
     const { onlineUser , socket} = useSocketContext();
     const selectedUserId = selectedConversation?._id;
 
@@ -69,7 +76,11 @@ const Sidebar = () => {
 
     useEffect(() => {
         chatUserHandler()
-    }, [])
+        // who I blocked: the chat window and contact info need it
+        axios.get('/api/user/blocked')
+            .then(({ data }) => setBlockedIds(data.map(u => u._id)))
+            .catch((error) => logger.error('Could not load blocked users', error));
+    }, [setBlockedIds])
 
     useEffect(()=>{
         const handleNewMessage = (newMessage)=>{
@@ -87,19 +98,38 @@ const Sidebar = () => {
         return ()=> socket?.off("newMessage", handleNewMessage);
     },[socket,selectedUserId])
 
-    //show user from the search result
-    const handelSearchSubmit = async (e) => {
-        e.preventDefault();
-        if (!searchInput.trim()) return;
+    //show user from the search result (only the latest query's answer is used)
+    const runSearch = useCallback(async (query) => {
+        latestSearch.current = query;
         setSearching(true)
         try {
-            const search = await axios.get(`/api/user/search`, { params: { search: searchInput } });
-            setSearchuser(search.data)
+            const search = await axios.get(`/api/user/search`, { params: { search: query } });
+            if (latestSearch.current === query) setSearchuser(search.data)
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Search failed')
+            if (latestSearch.current === query) toast.error(error?.response?.data?.message || 'Search failed')
         } finally {
-            setSearching(false)
+            if (latestSearch.current === query) setSearching(false)
         }
+    }, [])
+
+    // search as you type, once typing pauses; clearing the box goes back to the chats
+    useEffect(() => {
+        const query = toQuery(searchInput);
+        if (query.length < MIN_SEARCH) {
+            latestSearch.current = '';
+            setSearching(false);
+            if (!query) setSearchuser(null);
+            return;
+        }
+        const timer = setTimeout(() => runSearch(query), SEARCH_DELAY_MS);
+        return () => clearTimeout(timer);
+    }, [searchInput, runSearch])
+
+    // Enter searches right away
+    const handelSearchSubmit = (e) => {
+        e.preventDefault();
+        const query = toQuery(searchInput);
+        if (query.length >= MIN_SEARCH) runSearch(query);
     }
 
     //show which user is selected
@@ -118,6 +148,14 @@ const Sidebar = () => {
         setSearchInput('')
     }
 
+    // forget the session on this device and go to login
+    const clearSession = useCallback(() => {
+        localStorage.removeItem('chatapp')
+        reset()
+        setAuthUser(null)
+        navigate('/login')
+    }, [reset, setAuthUser, navigate])
+
     //logout
     const handelLogOut = async () => {
         const confirmLogout = window.confirm("Do you want to log out?");
@@ -129,10 +167,7 @@ const Sidebar = () => {
                 logger.error('Logout request failed', error);
             } finally {
                 // always clear the local session, even if the request failed
-                localStorage.removeItem('chatapp')
-                reset()
-                setAuthUser(null)
-                navigate('/login')
+                clearSession()
             }
         }
     }
@@ -142,7 +177,7 @@ const Sidebar = () => {
 
     return (
         <div className='relative flex h-full w-full flex-col overflow-hidden bg-white'>
-            {showProfile && <ProfilePanel onClose={closeProfile} />}
+            {showProfile && <ProfilePanel onClose={closeProfile} onSignedOut={clearSession} />}
             <header className='px-5 pb-4 pt-5'>
                 <Logo />
                 <form onSubmit={handelSearchSubmit} role='search' className='relative mt-5'>
@@ -153,7 +188,7 @@ const Sidebar = () => {
                         type='text'
                         enterKeyHint='search'
                         maxLength={50}
-                        placeholder='Search people'
+                        placeholder='Search by name or @username'
                         aria-label='Search people by name or username'
                         className='h-11 w-full rounded-xl border border-transparent bg-slate-100 pl-11 pr-10 text-[15px] text-slate-900
                         placeholder:text-slate-400 transition focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-500/15'
@@ -188,6 +223,7 @@ const Sidebar = () => {
                         {list.map((user) => {
                             const unread = unreadMessages[user._id] || 0;
                             const active = selectedUserId === user._id;
+                            const online = onlineUser.includes(user._id);
                             return (
                                 <li key={user._id}>
                                     <button
@@ -196,12 +232,15 @@ const Sidebar = () => {
                                         className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition
                                             ${active ? 'bg-brand-50 ring-1 ring-brand-100' : 'hover:bg-slate-50'}`}
                                     >
-                                        <Avatar user={user} online={onlineUser.includes(user._id)} />
+                                        <Avatar user={user} online={online} />
                                         <span className='min-w-0 flex-1'>
                                             <span className={`block truncate text-[15px] ${unread ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
                                                 {user.fullname || user.username}
                                             </span>
-                                            <span className='block truncate text-sm text-slate-500'>@{user.username}</span>
+                                            <span className='flex min-w-0 items-center gap-1.5 text-sm'>
+                                                <OnlineStatus online={online} className='shrink-0' />
+                                                <span className='truncate text-slate-400'>· @{user.username}</span>
+                                            </span>
                                         </span>
                                         {unread > 0 && (
                                             <span className='grid h-[22px] min-w-[22px] place-items-center rounded-full bg-brand-600 px-1.5 text-xs font-bold text-white'

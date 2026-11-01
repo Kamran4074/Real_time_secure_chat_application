@@ -24,6 +24,15 @@ describe('GET /api/user/search', ()=>{
         expect(res.body.map(u => u.username).sort()).toEqual(['alice','johnny']);
     });
 
+    test('matches the start of the username or of a name word, not the middle', async()=>{
+        expect((await search(me, 'ohn')).body).toEqual([]);
+        expect((await search(me, 'bra')).body.map(u => u.username)).toEqual(['johnny']);
+    });
+
+    test('needs at least 2 characters', async()=>{
+        expect((await search(me, 'j')).body).toEqual([]);
+    });
+
     test('never returns password or email', async()=>{
         const res = await search(me, 'john');
         for(const u of res.body){

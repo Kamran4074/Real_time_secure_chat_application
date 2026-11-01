@@ -12,8 +12,16 @@ export const sendMessage =async(req,res)=>{
     if(receiverId === senderId.toString()){
         return res.status(400).send({success:false, message:"You can't message yourself"});
     }
-    if(!(await User.exists({_id:receiverId}))){
+    const receiver = await User.findById(receiverId).select('blockedUsers');
+    if(!receiver){
         return res.status(404).send({success:false, message:"Receiver not found"});
+    }
+    if(req.user.blockedUsers.some(id => id.equals(receiverId))){
+        return res.status(403).send({success:false, message:"Unblock this user to send a message"});
+    }
+    // generic message, so it's not obvious that they blocked you
+    if(receiver.blockedUsers.some(id => id.equals(senderId))){
+        return res.status(403).send({success:false, message:"You can't message this user"});
     }
 
     let chats = await Conversation.findOne({

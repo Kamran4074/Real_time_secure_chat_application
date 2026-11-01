@@ -144,12 +144,34 @@ describe('real-time messaging', ()=>{
         const tab2 = await connect(bob.token);
         await new Promise(r => setTimeout(r, 200)); // let the "connected" broadcasts arrive first
 
-        let update = waitFor(watcher, 'getOnlineUsers');
+        // closing one of two tabs changes nothing, so nobody is told anything
+        const nothing = notReceived(watcher, 'getOnlineUsers', 400);
         tab1.close();
-        expect(await update).toContain(bob._id);
+        expect(await nothing).toBe(true);
 
-        update = waitFor(watcher, 'getOnlineUsers');
+        const update = waitFor(watcher, 'getOnlineUsers');
         tab2.close();
         expect(await update).not.toContain(bob._id);
+    });
+
+    test('offline is debounced: a quick reconnect (page refresh) never shows the user offline', async()=>{
+        process.env.PRESENCE_GRACE_MS = '400';
+        try {
+            const watcher = await connect(alice.token);
+            const bobSocket = await connect(bob.token);
+            await new Promise(r => setTimeout(r, 200));
+            const lists = [];
+            watcher.on('getOnlineUsers', ids => lists.push(ids));
+
+            bobSocket.close();
+            await new Promise(r => setTimeout(r, 100));
+            await connect(bob.token); // "refresh" within the grace period
+            await new Promise(r => setTimeout(r, 600)); // past the grace period
+
+            expect(lists.length).toBeGreaterThan(0);
+            expect(lists.every(ids => ids.includes(bob._id))).toBe(true);
+        } finally {
+            process.env.PRESENCE_GRACE_MS = '50';
+        }
     });
 });

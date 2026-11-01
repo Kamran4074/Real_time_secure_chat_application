@@ -21,7 +21,7 @@ const renderPanel = (onClose = vi.fn()) => {
 
 beforeEach(() => {
     vi.resetAllMocks();
-    axios.get.mockResolvedValue({ data: me });
+    axios.get.mockImplementation(async (url) => ({ data: url === '/api/user/blocked' ? [] : me }));
 });
 afterEach(() => vi.unstubAllGlobals());
 

@@ -14,7 +14,7 @@ describe('registerSchema', ()=>{
     test('accepts a valid user and trims text fields', ()=>{
         const result = registerSchema.parse({ ...validUser, fullname: '  Aisha Khan  ' });
         expect(result.fullname).toBe('Aisha Khan');
-    });
+    }); 
 
     test('rejects missing fields', ()=>{
         expect(firstError(registerSchema, { ...validUser, email: '' })).toBe('All fields are required');

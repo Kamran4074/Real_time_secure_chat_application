@@ -4,6 +4,7 @@ import escapeRegex from "../utils/escapeRegex.js";
 import { defaultAvatar } from "../utils/avatar.js";
 import { isUploadEnabled, signAvatarUpload, isOwnAvatarUrl } from "../utils/cloudinary.js";
 import logger from "../utils/logger.js";
+import { refreshBlocks } from "../socket/socket.js";
 
 // What other users may see about someone (never email, password, OAuth ids, ...)
 const PUBLIC_FIELDS = "fullname username profilepic bio";
@@ -16,27 +17,34 @@ const ownProfile = (user)=> ({
     email:user.email,
     profilepic:user.profilepic,
     bio:user.bio || "",
-    canUploadPhoto:isUploadEnabled()
+    canUploadPhoto:isUploadEnabled(),
+    linkedAccounts:{google:Boolean(user.googleId), github:Boolean(user.githubId)}
 });
+
+// ids of users who blocked this user (they must not find or message them)
+const blockedBy = (userId)=> User.find({blockedUsers:userId}).distinct('_id');
+
+const MIN_SEARCH_LENGTH = 2;
 
 // req.valid.query.search is already a trimmed string of max 50 chars (searchQuery schema)
 export const getUserBySearch = async(req,res)=>{
     const {search} = req.valid.query;
-    // don't let an empty search list every user
-    if(!search) return res.status(200).send([]);
+    // too short to be useful, and must not list every user
+    if(search.length < MIN_SEARCH_LENGTH) return res.status(200).send([]);
 
     const pattern = escapeRegex(search);
     const currentUserID = req.user._id;
     const user = await User.find({
         $and:[
             {
-                // match username or full name
+                // username starts with it, or any word of the full name does ("joh" finds "Alice Johnson")
                 $or:[
-                    {username:{$regex:pattern ,$options:'i'}},
-                    {fullname:{$regex:pattern,$options:'i'}}
+                    {username:{$regex:`^${pattern}`, $options:'i'}},
+                    {fullname:{$regex:`(^|\\s)${pattern}`, $options:'i'}}
                 ]
             },{
-                _id:{$ne:currentUserID} // exclude yourself
+                // not yourself, and not people who blocked you
+                _id:{$nin:[currentUserID, ...await blockedBy(currentUserID)]}
             }
         ]
     }).select(PUBLIC_FIELDS).limit(20);
@@ -73,7 +81,9 @@ export const getCurrentChatters = async(req,res)=>{
 // your own profile
 //----------------------
 export const getMe = async(req,res)=>{
-    res.status(200).send(ownProfile(req.user));
+    // isLogin leaves the password out; only whether one exists is needed (Google / GitHub accounts may have none)
+    const hasPassword = Boolean((await User.findById(req.user._id).select('password'))?.password);
+    res.status(200).send({...ownProfile(req.user), hasPassword});
 }
 
 // body validated by updateProfileSchema: only fullname, username, bio, profilepic, each optional
@@ -117,4 +127,35 @@ export const getAvatarUploadSignature = async(req,res)=>{
         return res.status(503).send({success:false, message:"Photo upload is not available right now"});
     }
     res.status(200).send(signAvatarUpload(req.user._id));
+}
+
+//----------------------
+// blocking
+//----------------------
+export const getBlockedUsers = async(req,res)=>{
+    await req.user.populate({path:'blockedUsers', select:PUBLIC_FIELDS});
+    res.status(200).send(req.user.blockedUsers);
+}
+
+export const blockUser = async(req,res)=>{
+    const {id} = req.valid.params;
+    if(id === req.user._id.toString()){
+        return res.status(400).send({success:false, message:"You can't block yourself"});
+    }
+    if(!(await User.exists({_id:id}))){
+        return res.status(404).send({success:false, message:"User not found"});
+    }
+    await User.updateOne({_id:req.user._id}, {$addToSet:{blockedUsers:id}});
+    // hide online status / typing between the two right away
+    await refreshBlocks(req.user._id, id);
+    logger.info('User blocked', {requestId:req.id, userId:req.user._id.toString(), blockedId:id});
+    res.status(200).send({success:true, message:"User blocked"});
+}
+
+export const unblockUser = async(req,res)=>{
+    const {id} = req.valid.params;
+    await User.updateOne({_id:req.user._id}, {$pull:{blockedUsers:id}});
+    await refreshBlocks(req.user._id, id);
+    logger.info('User unblocked', {requestId:req.id, userId:req.user._id.toString(), blockedId:id});
+    res.status(200).send({success:true, message:"User unblocked"});
 }

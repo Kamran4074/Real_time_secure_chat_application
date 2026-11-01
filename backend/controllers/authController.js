@@ -1,7 +1,7 @@
 import User from "../models/userModel.js";
 import bcryptjs from "bcryptjs";
 import jwtToken, { cookieOptions, revokeToken } from "../utils/jwt.js";
-import { disconnectToken } from "../socket/socket.js";
+import { disconnectToken, disconnectUser } from "../socket/socket.js";
 import escapeRegex from "../utils/escapeRegex.js";
 import { defaultAvatar } from "../utils/avatar.js";
 import logger from "../utils/logger.js";
@@ -100,4 +100,16 @@ export const userLogout = async(req,res)=>{
     res.clearCookie("jwt", cookieOptions);
     logger.info('User logged out', {requestId:req.id, userId:req.user._id.toString()});
     res.status(200).send({message:"User logout"});
+}
+
+//-------------------
+// log out from all devices (including this one)
+//-------------------
+export const userLogoutAll = async(req,res)=>{
+    // every token issued before now is rejected by isLogin / socket auth
+    await User.updateOne({_id:req.user._id}, {sessionsRevokedAt:new Date()});
+    disconnectUser(req.user._id);
+    res.clearCookie("jwt", cookieOptions);
+    logger.info('User logged out from all devices', {requestId:req.id, userId:req.user._id.toString()});
+    res.status(200).send({message:"Logged out from all devices"});
 }

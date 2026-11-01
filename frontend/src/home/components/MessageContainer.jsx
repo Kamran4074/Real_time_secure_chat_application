@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState, useRef } from 'react'
+import { Fragment, useCallback, useEffect, useState, useRef } from 'react'
 import useConversation from '../../store/useConversation';
 import { useAuth } from '../../context/AuthContext';
 import { HiChatBubbleLeftRight } from 'react-icons/hi2';
@@ -11,6 +11,9 @@ import Avatar from '../../components/ui/Avatar';
 import TypingDots from '../../components/ui/TypingDots';
 import { Spinner } from '../../components/ui/Button';
 import logger from '../../utils/logger';
+import ContactPanel from './ContactPanel';
+import OnlineStatus from '../../components/ui/OnlineStatus';
+import useBlockToggle from '../useBlockToggle';
 
 const MAX_LENGTH = 2000;
 
@@ -38,7 +41,10 @@ const MessagesSkeleton = () => (
 );
 
 const MessageContainer = ({ onBackUser }) => {
-    const { messages, selectedConversation, setMessage, addMessage } = useConversation();
+    const { messages, selectedConversation, setMessage, addMessage, blockedIds } = useConversation();
+    const [showContact, setShowContact] = useState(false);
+    const { toggle: toggleBlock, busy: unblocking } = useBlockToggle();
+    const closeContact = useCallback(() => setShowContact(false), []);
     const {socket, onlineUser} = useSocketContext();
     const { authUser } = useAuth();
     const [loading, setLoading] = useState(false);
@@ -48,8 +54,10 @@ const MessageContainer = ({ onBackUser }) => {
     const bottomRef = useRef();
     const inputRef = useRef();
     const typingTimeoutRef = useRef(null);
+    const typingSentRef = useRef(false); // "typing" already told for this burst of keystrokes
 
     const isOnline = onlineUser.includes(selectedConversation?._id);
+    const blocked = blockedIds.includes(selectedConversation?._id);
     const name = selectedConversation?.fullname || selectedConversation?.username;
 
     useEffect(()=>{
@@ -110,29 +118,45 @@ const MessageContainer = ({ onBackUser }) => {
 
         setIsTyping(false);
         setSendData('');
+        setShowContact(false);
         if (selectedConversation?._id) {
             getMessages();
             inputRef.current?.focus();
         }
     }, [selectedConversation?._id, setMessage])
 
+    // switching chats (or leaving) mid-typing: tell the previous person right away
+    useEffect(()=>{
+        const receiverId = selectedConversation?._id;
+        const typingTimeout = typingTimeoutRef;
+        const typingSent = typingSentRef;
+        return ()=>{
+            clearTimeout(typingTimeout.current);
+            if(typingSent.current && receiverId) socket?.emit('stopTyping', {receiverId});
+            typingSent.current = false;
+        };
+    }, [selectedConversation?._id, socket])
+
+    // end the current typing burst (if any) and tell the other side once
+    const stopTyping = (receiverId)=>{
+        clearTimeout(typingTimeoutRef.current);
+        if(typingSentRef.current) socket?.emit('stopTyping', {receiverId});
+        typingSentRef.current = false;
+    }
+
     const handelMessages=(e)=>{
         setSendData(e.target.value)
+        if(!e.target.value.length || !selectedConversation?._id) return;
+        const receiverId = selectedConversation._id;
 
-        // Emit typing event
-        if(e.target.value.length > 0 && selectedConversation?._id){
-          socket?.emit('typing', {receiverId: selectedConversation._id});
-
-          // Clear previous timeout
-          if(typingTimeoutRef.current){
-            clearTimeout(typingTimeoutRef.current);
-          }
-
-          // Stop typing after 2 seconds of inactivity
-          typingTimeoutRef.current = setTimeout(()=>{
-            socket?.emit('stopTyping', {receiverId: selectedConversation._id});
-          }, 2000);
+        // one "typing" per burst instead of one per keystroke
+        if(!typingSentRef.current){
+          socket?.emit('typing', {receiverId});
+          typingSentRef.current = true;
         }
+        // debounced: "stopTyping" once there's been no key for 2 seconds
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(()=> stopTyping(receiverId), 2000);
       }
 
     const handelSubmit=async(e)=>{
@@ -140,10 +164,7 @@ const MessageContainer = ({ onBackUser }) => {
         if(!sendData.trim() || sending) return;
 
         // Stop typing indicator when sending
-        socket?.emit('stopTyping', {receiverId: selectedConversation._id});
-        if(typingTimeoutRef.current){
-          clearTimeout(typingTimeoutRef.current);
-        }
+        stopTyping(selectedConversation._id);
 
         setSending(true);
         try {
@@ -175,26 +196,30 @@ const MessageContainer = ({ onBackUser }) => {
     }
 
     return (
-        <div className='flex h-full flex-col'>
+        <div className='relative flex h-full flex-col overflow-hidden'>
+            {showContact && <ContactPanel user={selectedConversation} online={isOnline} onClose={closeContact} />}
             {/* header */}
             <header className='flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 sm:px-5'>
                 <button onClick={onBackUser} aria-label='Back to chats'
                     className='grid h-9 w-9 place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 md:hidden'>
                     <FiArrowLeft className='h-5 w-5' />
                 </button>
+                <button onClick={() => setShowContact(true)} aria-label={`Contact info for ${name}`}
+                    className='-ml-1 flex min-w-0 items-center gap-3 rounded-xl px-1 py-1 text-left transition hover:bg-slate-50'>
                 <Avatar user={selectedConversation} online={isOnline} />
-                <div className='min-w-0'>
-                    <p className='truncate font-semibold text-slate-900'>{name}</p>
-                    <p className='text-xs' aria-live='polite'>
+                <span className='min-w-0'>
+                    <span className='block truncate font-semibold text-slate-900'>{name}</span>
+                    <span className='block text-xs' aria-live='polite'>
                         {isTyping ? (
                             <span className='font-medium text-brand-600'>typing…</span>
-                        ) : isOnline ? (
-                            <span className='font-medium text-emerald-600'>Online</span>
+                        ) : blocked ? (
+                            <span className='text-slate-500'>Blocked</span>
                         ) : (
-                            <span className='text-slate-500'>Offline</span>
+                            <OnlineStatus online={isOnline} />
                         )}
-                    </p>
-                </div>
+                    </span>
+                </span>
+                </button>
             </header>
 
             {/* messages */}
@@ -246,7 +271,16 @@ const MessageContainer = ({ onBackUser }) => {
                 <div ref={bottomRef} />
             </div>
 
-            {/* composer */}
+            {/* composer (replaced by a notice while this user is blocked) */}
+            {blocked ? (
+                <div className='flex shrink-0 flex-col items-center gap-2 border-t border-slate-200 bg-white p-4 text-center sm:flex-row sm:justify-center'>
+                    <p className='text-sm text-slate-600'>You blocked {name}. You can&apos;t send or receive messages.</p>
+                    <button onClick={() => toggleBlock(selectedConversation, false)} disabled={unblocking}
+                        className='rounded-lg px-3 py-1.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-50 disabled:opacity-60'>
+                        {unblocking ? 'Unblocking…' : 'Unblock'}
+                    </button>
+                </div>
+            ) : (
             <form onSubmit={handelSubmit} className='flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white p-3 sm:px-5'>
                 <div className='relative flex-1'>
                     <input
@@ -273,6 +307,7 @@ const MessageContainer = ({ onBackUser }) => {
                     {sending ? <Spinner /> : <FiSend className='-ml-0.5 h-5 w-5' />}
                 </button>
             </form>
+            )}
         </div>
     )
 }
