@@ -17,4 +17,4 @@ Object.assign(process.env, {
 
 process.on('exit', ()=> mongo.stop());
 
-await import('../index.js');
+await import('../src/index.js');

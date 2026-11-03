@@ -1,8 +1,7 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { io as ioClient } from 'socket.io-client';
-import { app, server } from '../app.js';
-import { io } from '../socket/socket.js';
+import { app, server, io } from '../src/server.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 let url;

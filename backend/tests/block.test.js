@@ -1,8 +1,7 @@
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
-import { app, server } from '../app.js';
-import { io } from '../socket/socket.js';
-import User from '../models/userModel.js';
+import { app, server, io } from '../src/server.js';
+import User from '../src/modules/users/user.model.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 let url;

@@ -1,7 +1,7 @@
 import request from 'supertest';
-import { app } from '../app.js';
-import User from '../models/userModel.js';
-import OAuthCode from '../models/oauthCodeModel.js';
+import { app } from '../src/server.js';
+import User from '../src/modules/users/user.model.js';
+import OAuthCode from '../src/modules/auth/models/oauthCode.model.js';
 import { startDb, stopDb, clearDb, auth } from './helpers.js';
 
 const CLIENT_URL = 'http://localhost:5173';
@@ -184,7 +184,7 @@ describe('Google sign-in', ()=>{
         expect(user.password).toBeUndefined();
 
         // the token works like a normal login token
-        const me = await request(app).get('/api/user/currentchatters').set(auth(res.body.token));
+        const me = await request(app).get('/api/message/conversations').set(auth(res.body.token));
         expect(me.status).toBe(200);
     });
 

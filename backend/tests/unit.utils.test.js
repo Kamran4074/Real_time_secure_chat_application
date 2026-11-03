@@ -1,9 +1,10 @@
 import { jest } from '@jest/globals';
 import jwt from 'jsonwebtoken';
-import escapeRegex from '../utils/escapeRegex.js';
-import jwtToken, { cookieOptions, isTokenError } from '../utils/jwt.js';
-import { errorMeta } from '../utils/logger.js';
-import { getProvider, getCredentials, isEnabled, enabledProviders, exchangeCode } from '../utils/oauthProviders.js';
+import escapeRegex from '../src/shared/escapeRegex.js';
+import { createToken, isTokenError } from '../src/modules/auth/session.js';
+import { setSessionCookie, cookieOptions } from '../src/modules/auth/sessionCookie.js';
+import { errorMeta } from '../src/shared/logger.js';
+import { getProvider, getCredentials, isEnabled, enabledProviders, exchangeCode } from '../src/modules/auth/oauth.providers.js';
 
 // Unit tests: plain functions, no server and no database
 
@@ -24,9 +25,10 @@ describe('escapeRegex', ()=>{
 });
 
 describe('jwt helpers', ()=>{
-    test('jwtToken signs a 7-day token with a jti and sets it as a secure cookie', ()=>{
+    test('createToken signs a 7-day token with a jti; setSessionCookie sets it as a secure cookie', ()=>{
         const res = { cookie: jest.fn() };
-        const token = jwtToken('user123', res);
+        const token = createToken('user123');
+        setSessionCookie(res, token);
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         expect(decoded.userId).toBe('user123');
@@ -40,9 +42,8 @@ describe('jwt helpers', ()=>{
     });
 
     test('every token gets a different jti', ()=>{
-        const res = { cookie: jest.fn() };
-        const a = jwt.decode(jwtToken('u', res));
-        const b = jwt.decode(jwtToken('u', res));
+        const a = jwt.decode(createToken('u'));
+        const b = jwt.decode(createToken('u'));
         expect(a.jti).not.toBe(b.jti);
     });
 

@@ -1,10 +1,9 @@
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
-import { app, server } from '../app.js';
-import { io } from '../socket/socket.js';
-import Message from '../models/messageModel.js';
-import Conversation from '../models/conversationModel.js';
-import User from '../models/userModel.js';
+import { app, server, io } from '../src/server.js';
+import Message from '../src/modules/messages/message.model.js';
+import Conversation from '../src/modules/messages/conversation.model.js';
+import User from '../src/modules/users/user.model.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 let url;
@@ -156,7 +155,7 @@ describe('last seen', ()=>{
 
         const stored = await User.findById(bilal._id);
         expect(stored.lastSeen.getTime()).toBeGreaterThanOrEqual(before - 50);
-        const chats = await request(app).get('/api/user/currentchatters').set(auth(aisha.token));
+        const chats = await request(app).get('/api/message/conversations').set(auth(aisha.token));
         expect(chats.body[0].lastSeen).toEqual(stored.lastSeen.toISOString());
     });
 
@@ -184,7 +183,7 @@ describe('last seen', ()=>{
         await send(aisha, bilal);
         await User.updateOne({_id:bilal._id}, {lastSeen:new Date()});
         await request(app).post(`/api/user/block/${aisha._id}`).set(auth(bilal.token));
-        const chats = await request(app).get('/api/user/currentchatters').set(auth(aisha.token));
+        const chats = await request(app).get('/api/message/conversations').set(auth(aisha.token));
         expect(chats.body[0].username).toBe('bilal');
         expect(chats.body[0]).not.toHaveProperty('lastSeen');
     });

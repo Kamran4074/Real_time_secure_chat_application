@@ -1,6 +1,6 @@
 import request from 'supertest';
-import { app } from '../app.js';
-import User from '../models/userModel.js';
+import { app } from '../src/server.js';
+import User from '../src/modules/users/user.model.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 beforeAll(startDb);

@@ -1,7 +1,7 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
-import { app } from '../app.js';
-import User from '../models/userModel.js';
+import { app } from '../src/server.js';
+import User from '../src/modules/users/user.model.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 beforeAll(startDb);
@@ -130,34 +130,34 @@ describe('POST /api/auth/login', ()=>{
 
 describe('protected routes and token revocation', ()=>{
     test('no token -> 401', async()=>{
-        const res = await request(app).get('/api/user/currentchatters');
+        const res = await request(app).get('/api/message/conversations');
         expect(res.status).toBe(401);
     });
 
     test('tampered token -> 401', async()=>{
         const {token} = await registerUser(app);
-        const res = await request(app).get('/api/user/currentchatters').set(auth(token + 'x'));
+        const res = await request(app).get('/api/message/conversations').set(auth(token + 'x'));
         expect(res.status).toBe(401);
     });
 
     test('expired token -> 401', async()=>{
         const {_id} = await registerUser(app);
         const expired = jwt.sign({userId:_id}, process.env.JWT_SECRET, {expiresIn:-10, jwtid:'abc'});
-        const res = await request(app).get('/api/user/currentchatters').set(auth(expired));
+        const res = await request(app).get('/api/message/conversations').set(auth(expired));
         expect(res.status).toBe(401);
     });
 
     test('old token without jti -> 401', async()=>{
         const {_id} = await registerUser(app);
         const old = jwt.sign({userId:_id}, process.env.JWT_SECRET, {expiresIn:'1d'});
-        const res = await request(app).get('/api/user/currentchatters').set(auth(old));
+        const res = await request(app).get('/api/message/conversations').set(auth(old));
         expect(res.status).toBe(401);
     });
 
     test('token of a deleted user -> 401', async()=>{
         const {_id, token} = await registerUser(app);
         await User.deleteOne({_id});
-        const res = await request(app).get('/api/user/currentchatters').set(auth(token));
+        const res = await request(app).get('/api/message/conversations').set(auth(token));
         expect(res.status).toBe(401);
     });
 
@@ -172,10 +172,10 @@ describe('protected routes and token revocation', ()=>{
         expect(out.status).toBe(200);
         expect(out.headers['set-cookie'][0]).toMatch(/jwt=;/); // cookie cleared
 
-        const reused = await request(app).get('/api/user/currentchatters').set(auth(token));
+        const reused = await request(app).get('/api/message/conversations').set(auth(token));
         expect(reused.status).toBe(401);
 
-        const stillIn = await request(app).get('/api/user/currentchatters').set(auth(otherDevice));
+        const stillIn = await request(app).get('/api/message/conversations').set(auth(otherDevice));
         expect(stillIn.status).toBe(200);
     });
 

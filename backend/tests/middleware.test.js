@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app } from '../app.js';
+import { app } from '../src/server.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 beforeAll(startDb);

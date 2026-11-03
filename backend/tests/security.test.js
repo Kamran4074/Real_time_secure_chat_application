@@ -1,8 +1,8 @@
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
-import { app } from '../app.js';
-import User from '../models/userModel.js';
-import Message from '../models/messageModel.js';
+import { app } from '../src/server.js';
+import User from '../src/modules/users/user.model.js';
+import Message from '../src/modules/messages/message.model.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 // Security tests (OWASP Top 10 style): each test tries an attack and checks that it is blocked.
@@ -76,7 +76,7 @@ describe('broken authentication', ()=>{
         const user = await registerUser(app);
         const unsigned = jwt.sign({userId: user._id, jti: 'x'}, '', {algorithm: 'none'});
 
-        const res = await request(app).get('/api/user/currentchatters').set(auth(unsigned));
+        const res = await request(app).get('/api/message/conversations').set(auth(unsigned));
         expect(res.status).toBe(401);
     });
 
@@ -84,12 +84,12 @@ describe('broken authentication', ()=>{
         const user = await registerUser(app);
         const forged = jwt.sign({userId: user._id, jti: 'x'}, 'attacker-secret');
 
-        const res = await request(app).get('/api/user/currentchatters').set(auth(forged));
+        const res = await request(app).get('/api/message/conversations').set(auth(forged));
         expect(res.status).toBe(401);
     });
 
     test('a malformed Authorization header is rejected', async()=>{
-        const res = await request(app).get('/api/user/currentchatters').set('Authorization', 'Bearer not.a.jwt');
+        const res = await request(app).get('/api/message/conversations').set('Authorization', 'Bearer not.a.jwt');
         expect(res.status).toBe(401);
     });
 });
@@ -115,7 +115,7 @@ describe('broken access control', ()=>{
 
         const responses = await Promise.all([
             request(app).get('/api/user/search?search=alice').set(auth(bob.token)),
-            request(app).get('/api/user/currentchatters').set(auth(bob.token)),
+            request(app).get('/api/message/conversations').set(auth(bob.token)),
             request(app).get(`/api/message/${alice._id}`).set(auth(bob.token)),
         ]);
         for(const res of responses){
