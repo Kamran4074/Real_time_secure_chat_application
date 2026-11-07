@@ -1,12 +1,15 @@
 import express from "express";
 import requireAuth from "./requireAuth.js";
 import validate from "../../shared/middleware/validate.js";
-import { authLimiter } from "../../shared/middleware/rateLimiters.js";
+import { apiLimiter, authLimiter } from "../../shared/middleware/rateLimiters.js";
 import { registerSchema, loginSchema, oauthExchangeSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from "./auth.schemas.js";
 import * as controller from "./auth.controller.js";
 
 export const basePath = '/auth';
 export const router = express.Router();
+
+// overall cap per IP, shared by every module (stricter limits are added per route below)
+router.use(apiLimiter);
 
 // authLimiter: slows down password guessing / email flooding on every route that checks a secret or sends mail
 router.post('/register', authLimiter, validate({body: registerSchema}), controller.register);

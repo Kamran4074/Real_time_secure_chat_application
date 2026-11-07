@@ -28,8 +28,13 @@ export const errorHandler = (err, req, res, next)=>{
         return res.status(err.status).send({success:false, message: err.expose ? err.message : "Bad request"});
     }
 
-    // requestId + module are added by the log context (see requestContext.js)
-    logger.error(`Unhandled error on ${req.method} ${req.route?.path ? req.baseUrl + req.route.path : req.originalUrl.split('?')[0]}`, errorMeta(err));
+    // requestId + module are added by the log context (see requestContext.js).
+    // The route comes from the request, so it goes in a structured field, never in the message text.
+    logger.error('Unhandled error', {
+        method: req.method,
+        route: req.route?.path ? req.baseUrl + req.route.path : req.originalUrl.split('?')[0],
+        ...errorMeta(err)
+    });
     // the request id lets a user report an error that we can find in the logs
     res.status(500).send({success:false, message:"Internal server error", requestId: req.id});
 };

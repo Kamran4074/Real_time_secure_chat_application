@@ -94,8 +94,8 @@ A request flows strictly one way:
 
 ```
 HTTP request
-  → app.js (requestLogger, helmet, cors, rate limit, tagModule)
-  → <module>.routes.js   (requireAuth, validate)
+  → app.js (requestLogger, helmet, cors, tagModule)
+  → <module>.routes.js   (apiLimiter, requireAuth, stricter limits, validate)
   → <module>.controller.js
   → <module>.service.js  ──→ realtime/notifier.js   (live events)
   → <module>.model.js         shared/services/*      (email, cloudinary)
@@ -156,6 +156,7 @@ user saw in the response header `X-Request-Id`.
 
 1. Create `src/modules/groups/` with the files from 2.2 (copy a small module such as `messages`).
 2. Put rules in `groups.service.js`, contracts in `groups.schemas.js`, HTTP in the controller.
+   Start the router with `router.use(apiLimiter)` like the other modules.
 3. Export what other modules may use from `groups/index.js`.
 4. Add `groups` to the `modules` list in `src/app.js`.
 5. Add `tests/groups.test.js`.

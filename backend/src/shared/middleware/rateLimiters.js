@@ -24,16 +24,14 @@ export const authLimiter = createLimiter({
     message: "Too many attempts, please try again later"
 });
 
-// Overall cap for every API route per IP (the keep-alive health check is not counted)
-export const apiLimiter = (()=>{
-    const limiter = createLimiter({
-        name: 'API',
-        windowMs: 15*60*1000,
-        limit: limitFrom('API_RATE_LIMIT', 600),
-        message: "Too many requests, please slow down"
-    });
-    return (req, res, next)=> req.path === '/health' ? next() : limiter(req, res, next);
-})();
+// Overall cap per IP, mounted in front of every module (app.js). One shared counter for all modules.
+// The keep-alive health check is not behind it.
+export const apiLimiter = createLimiter({
+    name: 'API',
+    windowMs: 15*60*1000,
+    limit: limitFrom('API_RATE_LIMIT', 600),
+    message: "Too many requests, please slow down"
+});
 
 // Spam protection for sending messages: 30 per minute per logged-in user (runs after isLogin)
 export const messageLimiter = createLimiter({

@@ -1,7 +1,6 @@
 import bcryptjs from "bcryptjs";
 import { User, findByEmail } from "../users/index.js";
 import PasswordReset from "./models/passwordReset.model.js";
-import { createToken } from "./session.js";
 import { hashPassword } from "./auth.service.js";
 import { AppError, fieldError } from "../../shared/errors.js";
 import { sha256, randomToken } from "../../shared/crypto.js";
@@ -68,7 +67,7 @@ export const resetPassword = async(token, password)=>{
 
 //----------------------
 // change (or, for Google / GitHub accounts, set) the password while logged in.
-// Returns a fresh token so this device stays logged in.
+// Every session ends; the caller starts a fresh one for this device. Returns whether a password existed before.
 //----------------------
 export const changePassword = async(userId, {currentPassword, newPassword})=>{
     const user = await User.findById(userId);
@@ -81,5 +80,5 @@ export const changePassword = async(userId, {currentPassword, newPassword})=>{
 
     await setPassword(user, newPassword);
     logger.info(hadPassword ? 'Password changed' : 'Password set', {userId: user._id.toString()});
-    return {hadPassword, token: createToken(user._id)};
+    return hadPassword;
 };

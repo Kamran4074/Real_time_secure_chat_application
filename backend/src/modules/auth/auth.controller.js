@@ -3,7 +3,7 @@ import * as password from "./password.service.js";
 import * as oauth from "./oauth.service.js";
 import { setSessionCookie, clearSessionCookie } from "./sessionCookie.js";
 import logger, { errorMeta } from "../../shared/logger.js";
-import { clientUrl, serverUrl } from "../../config/urls.js";
+import { clientUrl } from "../../config/urls.js";
 
 // HTTP in / out only (status, body, cookies, redirects): the rules live in the *.service.js files
 
@@ -60,7 +60,9 @@ export const resetPassword = async(req, res)=>{
 };
 
 export const changePassword = async(req, res)=>{
-    const {hadPassword, token} = await password.changePassword(req.user._id, req.body);
+    const hadPassword = await password.changePassword(req.user._id, req.body);
+    // other devices are logged out; this one continues with a fresh session
+    const token = auth.startSession(req.user._id);
     setSessionCookie(res, token);
     res.status(200).send({success: true, message: hadPassword ? "Password changed" : "Password set", token});
 };
@@ -69,13 +71,10 @@ export const changePassword = async(req, res)=>{
 // OAuth (Google / GitHub)
 //----------------------
 const STATE_COOKIE = 'oauth_state';
+const STATE_MAX_AGE_MS = 10*60*1000;
+// httpOnly + Secure (browsers accept Secure cookies on http://localhost too);
 // lax: the cookie must survive the top-level redirect back from Google / GitHub
-const stateCookieOptions = ()=> ({
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: serverUrl().startsWith('https'),
-    path: '/api/auth'
-});
+const STATE_COOKIE_OPTIONS = {httpOnly: true, secure: true, sameSite: 'lax', path: '/api/auth'};
 
 // which buttons the frontend should enable
 export const listProviders = (req, res)=>{
@@ -84,7 +83,7 @@ export const listProviders = (req, res)=>{
 
 export const startOAuth = (req, res)=>{
     const {url, state} = oauth.startAuthorization(req.params.provider);
-    res.cookie(STATE_COOKIE, state, {...stateCookieOptions(), maxAge: 10*60*1000});
+    res.cookie(STATE_COOKIE, state, {httpOnly: true, secure: true, sameSite: 'lax', path: '/api/auth', maxAge: STATE_MAX_AGE_MS});
     res.redirect(url);
 };
 
@@ -92,14 +91,15 @@ export const startOAuth = (req, res)=>{
 export const oauthCallback = async(req, res)=>{
     const provider = req.params.provider;
     const savedState = req.cookies?.[STATE_COOKIE];
-    res.clearCookie(STATE_COOKIE, stateCookieOptions());
+    res.clearCookie(STATE_COOKIE, STATE_COOKIE_OPTIONS);
 
     try {
         const code = await oauth.completeAuthorization(provider, req.query, savedState);
         res.redirect(`${clientUrl()}/?oauth_code=${code}`);
     } catch (error) {
         const reason = error instanceof oauth.OAuthFailure ? error.reason : 'server_error';
-        if(reason === 'server_error') logger.error(`OAuth ${provider} error`, errorMeta(error));
+        // user input (the provider name) goes in the structured fields, never in the message text
+        if(reason === 'server_error') logger.error('OAuth provider error', {provider, ...errorMeta(error)});
         logger.warn('OAuth sign-in failed', {provider, reason});
         res.redirect(`${clientUrl()}/?oauth_error=${reason}`);
     }

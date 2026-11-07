@@ -9,7 +9,6 @@ import { AppError } from "./shared/errors.js";
 import requestLogger from "./shared/middleware/requestLogger.js";
 import tagModule from "./shared/middleware/tagModule.js";
 import { notFound, errorHandler } from "./shared/middleware/errorHandler.js";
-import { apiLimiter } from "./shared/middleware/rateLimiters.js";
 import * as auth from "./modules/auth/auth.routes.js";
 import * as users from "./modules/users/users.routes.js";
 import * as messages from "./modules/messages/messages.routes.js";
@@ -39,9 +38,7 @@ app.use(cors({
 app.use(express.json({limit: '10kb'}));
 app.use(cookieParser());
 
-// overall cap per IP on every API route (auth / messages / search have stricter limits in their routes)
-app.use('/api', apiLimiter);
-
+// every module: tag for logs, then its routes (each router starts with the shared apiLimiter)
 for(const module of modules){
     app.use(`/api${module.basePath}`, tagModule(module.name), module.router);
 }

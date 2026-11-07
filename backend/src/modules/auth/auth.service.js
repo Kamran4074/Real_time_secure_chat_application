@@ -7,6 +7,9 @@ import { disconnectToken, disconnectUser } from "../../realtime/notifier.js";
 
 export const hashPassword = (password)=> bcryptjs.hash(password, 10);
 
+// a new session token for this user (e.g. to keep the current device logged in after a password change)
+export const startSession = (userId)=> createToken(userId);
+
 //----------------------
 // register (input validated and trimmed by registerSchema)
 //----------------------

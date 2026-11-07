@@ -1,13 +1,16 @@
 import express from 'express';
 import { requireAuth } from '../auth/index.js';
 import validate from '../../shared/middleware/validate.js';
-import { messageLimiter } from '../../shared/middleware/rateLimiters.js';
+import { apiLimiter, messageLimiter } from '../../shared/middleware/rateLimiters.js';
 import { userIdParams } from '../../shared/validation.js';
 import { sendMessageSchema, messagesQuery } from './messages.schemas.js';
 import * as controller from './messages.controller.js';
 
 export const basePath = '/message';
 export const router = express.Router();
+
+// overall cap per IP, shared by every module (stricter limits are added per route below)
+router.use(apiLimiter);
 
 router.use(requireAuth);
 
