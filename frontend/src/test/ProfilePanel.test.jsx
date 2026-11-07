@@ -3,8 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import ProfilePanel from '../home/components/ProfilePanel';
-import { AuthContextProvider } from '../context/AuthContext';
+import ProfilePanel from '../features/settings/components/ProfilePanel';
+import { AuthContextProvider } from '../features/auth/AuthContext';
 
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));

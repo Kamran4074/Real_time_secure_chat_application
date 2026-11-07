@@ -1,6 +1,6 @@
 import request from 'supertest';
-import { app } from '../app.js';
-import User from '../models/userModel.js';
+import { app } from '../src/server.js';
+import User from '../src/modules/users/user.model.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 beforeAll(startDb);
@@ -76,11 +76,11 @@ describe('GET /api/user/search', ()=>{
     });
 });
 
-describe('GET /api/user/currentchatters', ()=>{
+describe('GET /api/message/conversations', ()=>{
     const send = (from, to, text)=>
         request(app).post(`/api/message/send/${to._id}`).set(auth(from.token)).send({messages:text});
     const chatters = (user)=>
-        request(app).get('/api/user/currentchatters').set(auth(user.token));
+        request(app).get('/api/message/conversations').set(auth(user.token));
 
     test('returns [] for a new user', async()=>{
         const me = await registerUser(app);

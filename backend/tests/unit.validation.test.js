@@ -1,8 +1,9 @@
 import { jest } from '@jest/globals';
-import validate from '../middleware/validate.js';
-import {
-    registerSchema, loginSchema, oauthExchangeSchema, userIdParams, searchQuery, sendMessageSchema, MAX_MESSAGE_LENGTH
-} from '../validation/schemas.js';
+import validate from '../src/shared/middleware/validate.js';
+import { registerSchema, loginSchema, oauthExchangeSchema } from '../src/modules/auth/auth.schemas.js';
+import { searchQuery } from '../src/modules/users/users.schemas.js';
+import { sendMessageSchema, MAX_MESSAGE_LENGTH } from '../src/modules/messages/messages.schemas.js';
+import { userIdParams } from '../src/shared/validation.js';
 
 // Unit tests: Zod schemas and the validate() middleware with fake req/res objects
 

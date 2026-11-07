@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
-import { loginSchema, registerSchema, fieldErrors, serverFieldErrors } from '../validation/authSchemas';
+import { loginSchema, registerSchema } from '../features/auth/schemas';
+import { fieldErrors, serverFieldErrors } from '../shared/lib/formErrors';
 
 const validUser = {
     fullname: 'Aisha Khan', username: 'aisha_k', email: 'aisha@x.com',

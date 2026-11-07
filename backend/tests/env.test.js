@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import winston from 'winston';
-import { loadEnv } from '../config/env.js';
-import logger from '../utils/logger.js';
+import { loadEnv } from '../src/config/env.js';
+import logger from '../src/shared/logger.js';
 
 const ORIGINAL_ENV = { ...process.env };
 const BASE = { MONGODB_CONNECT: 'mongodb://localhost:27017/chatapp', JWT_SECRET: 'x'.repeat(40) };

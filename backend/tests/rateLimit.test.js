@@ -6,8 +6,8 @@ process.env.AUTH_RATE_LIMIT = '3';
 process.env.MESSAGE_RATE_LIMIT = '2';
 process.env.SEARCH_RATE_LIMIT = '2';
 // dynamic imports: a static import would load the limiters before these lines run
-const { app } = await import('../app.js');
-const { socketEventLimiter } = await import('../middleware/rateLimiters.js');
+const { app } = await import('../src/server.js');
+const { socketEventLimiter } = await import('../src/shared/middleware/rateLimiters.js');
 
 beforeAll(startDb);
 afterAll(stopDb);

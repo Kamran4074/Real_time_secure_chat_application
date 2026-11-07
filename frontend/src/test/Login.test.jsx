@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import Login from '../login/Login';
-import { AuthContextProvider } from '../context/AuthContext';
+import Login from '../features/auth/pages/Login';
+import { AuthContextProvider } from '../features/auth/AuthContext';
 
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));

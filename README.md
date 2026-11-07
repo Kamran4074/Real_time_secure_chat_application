@@ -11,10 +11,13 @@ with email/password and Google/GitHub (OAuth 2.0) sign-in.
 backend/    Express + Socket.IO + MongoDB API   (own package.json, .env, Dockerfile, tests)
 frontend/   React + Vite + Tailwind UI          (own package.json, .env, Dockerfile)
 .github/    CI (tests + build) and peak-hours keep-alive workflows
+docs/       architecture, and the product knowledge base (policies, FAQ)
 docker-compose.yml   runs MongoDB + backend + frontend together
 ```
 
 Backend and frontend are independent: install, run and deploy each from its own folder.
+Both are split into feature modules with the same layers in each; see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Product features, policies, FAQ and troubleshooting (also the source for a support chatbot): [docs/KNOWLEDGE_BASE.md](docs/KNOWLEDGE_BASE.md).
 
 ## Run locally
 
@@ -68,7 +71,7 @@ npm run test:e2e          # starts backend (in-memory DB) + built frontend itsel
 
 ## Security
 
-- **Rate limiting** ([backend/middleware/rateLimiters.js](backend/middleware/rateLimiters.js)), each changeable in `.env`:
+- **Rate limiting** ([backend/src/shared/middleware/rateLimiters.js](backend/src/shared/middleware/rateLimiters.js)), each changeable in `.env`:
 
   | What | Limit | Key |
   |---|---|---|

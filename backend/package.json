@@ -1,11 +1,11 @@
 {
   "name": "chatwave-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js",
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
     "e2e:server": "node scripts/e2e-server.js",
@@ -13,8 +13,8 @@
     "lint:unused": "knip"
   },
   "nodemonConfig": {
-    "ignore": [
-      "tests/*"
+    "watch": [
+      "src"
     ]
   },
   "keywords": [],
@@ -48,6 +48,15 @@
     "supertest": "^7.3.1"
   },
   "knip": {
+    "entry": [
+      "scripts/*.js",
+      "tests/**/*.test.js"
+    ],
+    "project": [
+      "src/**/*.js",
+      "scripts/**/*.js",
+      "tests/**/*.js"
+    ],
     "ignoreDependencies": [
       "jest"
     ]

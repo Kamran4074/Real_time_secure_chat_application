@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import request from 'supertest';
-import { app } from '../app.js';
-import PasswordReset from '../models/passwordResetModel.js';
+import { app } from '../src/server.js';
+import PasswordReset from '../src/modules/auth/models/passwordReset.model.js';
 import { startDb, stopDb, clearDb, registerUser, auth } from './helpers.js';
 
 const ORIGINAL_ENV = { ...process.env };
@@ -132,11 +132,11 @@ describe('POST /api/auth/reset-password', ()=>{
         await new Promise(r => setTimeout(r, 1100));
         await reset(tokenFromEmail(sentEmails[0]), 'newpass1');
 
-        const res = await request(app).get('/api/user/currentchatters').set(auth(user.token));
+        const res = await request(app).get('/api/message/conversations').set(auth(user.token));
         expect(res.status).toBe(401);
 
         const fresh = await request(app).post('/api/auth/login').send({email: 'aisha@test.com', password: 'newpass1'});
-        expect((await request(app).get('/api/user/currentchatters').set(auth(fresh.body.token))).status).toBe(200);
+        expect((await request(app).get('/api/message/conversations').set(auth(fresh.body.token))).status).toBe(200);
     });
 
     test.each([

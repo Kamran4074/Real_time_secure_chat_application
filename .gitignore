@@ -25,6 +25,7 @@ build/
 # Documentation (local planning files)
 *.md
 !README.md
+!docs/*.md
 
 # Test output
 coverage/

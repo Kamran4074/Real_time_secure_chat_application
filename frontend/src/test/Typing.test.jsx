@@ -2,14 +2,14 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
-import MessageContainer from '../home/components/MessageContainer';
-import useConversation from '../store/useConversation';
-import { AuthContextProvider } from '../context/AuthContext';
+import ChatWindow from '../features/chat/components/ChatWindow';
+import useConversation from '../shared/store/useConversation';
+import { AuthContextProvider } from '../features/auth/AuthContext';
 
 const socket = { on: vi.fn(), off: vi.fn(), emit: vi.fn() };
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock('../context/SocketContext', () => ({ useSocketContext: () => ({ socket, onlineUser: [] }) }));
+vi.mock('../shared/realtime/SocketContext', () => ({ useSocketContext: () => ({ socket, onlineUser: [] }) }));
 
 const bilal = { _id: 'b1', fullname: 'Bilal Ahmed', username: 'bilal' };
 const emitted = (event) => socket.emit.mock.calls.filter(([name]) => name === event);
@@ -27,7 +27,7 @@ beforeEach(() => {
 
 describe('typing indicator events', () => {
     test('one "typing" per burst of keys, one "stopTyping" after a 2 s pause', async () => {
-        render(<AuthContextProvider><MessageContainer onBackUser={vi.fn()} /></AuthContextProvider>);
+        render(<AuthContextProvider><ChatWindow onBackUser={vi.fn()} /></AuthContextProvider>);
         await userEvent.type(screen.getByLabelText('Type a message'), 'hello');
 
         expect(emitted('typing')).toEqual([['typing', { receiverId: 'b1' }]]);
@@ -37,7 +37,7 @@ describe('typing indicator events', () => {
 
     test('sending ends the burst right away', async () => {
         axios.post.mockResolvedValue({ data: { _id: 'm1', senderId: 'a1', message: 'hi', createdAt: new Date().toISOString() } });
-        render(<AuthContextProvider><MessageContainer onBackUser={vi.fn()} /></AuthContextProvider>);
+        render(<AuthContextProvider><ChatWindow onBackUser={vi.fn()} /></AuthContextProvider>);
         await userEvent.type(screen.getByLabelText('Type a message'), 'hi{Enter}');
 
         expect(emitted('stopTyping')).toHaveLength(1);
