@@ -4,17 +4,17 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import ContactPanel from '../home/components/ContactPanel';
-import AccountSettings from '../home/components/AccountSettings';
-import BlockedContacts from '../home/components/BlockedContacts';
-import Sidebar from '../home/components/Sidebar';
-import useConversation from '../store/useConversation';
-import { AuthContextProvider } from '../context/AuthContext';
-import { changePasswordSchema } from '../validation/authSchemas';
+import ContactPanel from '../features/contacts/components/ContactPanel';
+import AccountSettings from '../features/settings/components/AccountSettings';
+import BlockedContacts from '../features/contacts/components/BlockedContacts';
+import Sidebar from '../features/contacts/components/Sidebar';
+import useConversation from '../shared/store/useConversation';
+import { AuthContextProvider } from '../features/auth/AuthContext';
+import { changePasswordSchema } from '../features/auth/schemas';
 
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
-vi.mock('../context/SocketContext', () => ({ useSocketContext: () => ({ socket: null, onlineUser: [] }) }));
+vi.mock('../shared/realtime/SocketContext', () => ({ useSocketContext: () => ({ socket: null, onlineUser: [] }) }));
 
 const bilal = { _id: 'b1', fullname: 'Bilal Ahmed', username: 'bilal', bio: 'At work', profilepic: '' };
 const session = { _id: 'a1', fullname: 'Aisha Khan', username: 'aisha', token: 'old-token' };

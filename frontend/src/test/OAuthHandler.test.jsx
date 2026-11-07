@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import OAuthHandler from '../components/OAuthHandler';
-import { VerifyUser } from '../utils/VerifyUser';
-import { AuthContextProvider } from '../context/AuthContext';
+import OAuthHandler from '../features/auth/components/OAuthHandler';
+import RequireAuth from '../features/auth/components/RequireAuth';
+import { AuthContextProvider } from '../features/auth/AuthContext';
 
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -17,7 +17,7 @@ const renderAt = (search) => {
             <MemoryRouter initialEntries={['/']}>
                 <OAuthHandler />
                 <Routes>
-                    <Route element={<VerifyUser />}>
+                    <Route element={<RequireAuth />}>
                         <Route path='/' element={<p>Home page</p>} />
                     </Route>
                     <Route path='/login' element={<p>Login page</p>} />

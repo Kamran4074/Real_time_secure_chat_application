@@ -1,0 +1,70 @@
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
+import { exchangeOAuthCode } from '../api';
+import { errorMessage } from '../../../shared/api/client';
+import Logo from '../../../shared/ui/Logo';
+import { Spinner } from '../../../shared/ui/Button';
+
+const ERRORS = {
+    cancelled: 'Sign-in was cancelled.',
+    invalid_state: 'Sign-in expired. Please try again.',
+    email_not_verified: 'Your account needs a verified email address.',
+    unavailable: 'This sign-in option is not available right now.',
+    server_error: 'Could not sign you in. Please try again.',
+};
+
+// After Google/GitHub, the backend redirects to "/?oauth_code=..." (or "?oauth_error=...").
+// The root path always loads, so this works even on a host without SPA rewrites.
+const OAuthHandler = () => {
+    // read the URL during the first render, before route guards redirect away from "/"
+    const [params] = useState(() => new URLSearchParams(window.location.search));
+    const code = params.get('oauth_code');
+    const error = params.get('oauth_error');
+    const [busy, setBusy] = useState(Boolean(code));
+    const { signIn } = useAuth();
+    const navigate = useNavigate();
+    const handled = useRef(false);
+
+    useEffect(() => {
+        if (handled.current || (!code && !error)) return;
+        handled.current = true;
+
+        // remove the one-time code from the address bar and history
+        window.history.replaceState(null, '', window.location.pathname);
+
+        if (error) {
+            toast.error(ERRORS[error] || ERRORS.server_error);
+            return;
+        }
+
+        exchangeOAuthCode(code)
+            .then((session) => {
+                signIn(session);
+                toast.success(`Welcome, ${(session.fullname || session.username).split(' ')[0]}!`);
+                navigate('/', { replace: true });
+            })
+            .catch((err) => {
+                toast.error(errorMessage(err, ERRORS.server_error));
+                navigate('/login', { replace: true });
+            })
+            .finally(() => setBusy(false));
+    }, [code, error, navigate, signIn]);
+
+    if (!busy) return null;
+
+    return (
+        <div className='fixed inset-0 z-[60] grid place-items-center bg-white' role='status' aria-live='polite'>
+            <div className='flex flex-col items-center gap-5'>
+                <Logo size='lg' />
+                <div className='flex items-center gap-3 text-slate-600'>
+                    <Spinner className='border-slate-200 border-t-brand-600' />
+                    Signing you in…
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default OAuthHandler;

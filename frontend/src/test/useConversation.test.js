@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from 'vitest';
-import useConversation from '../store/useConversation';
+import useConversation from '../shared/store/useConversation';
 
 describe('useConversation store', () => {
     beforeEach(() => useConversation.getState().reset());

@@ -2,9 +2,9 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
-import TextField from '../components/ui/TextField';
-import Avatar from '../components/ui/Avatar';
-import OAuthButtons from '../components/OAuthButtons';
+import TextField from '../shared/ui/TextField';
+import Avatar from '../shared/ui/Avatar';
+import OAuthButtons from '../features/auth/components/OAuthButtons';
 
 vi.mock('axios');
 

@@ -2,10 +2,10 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from 'axios';
-import MessageContainer from '../home/components/MessageContainer';
-import useConversation from '../store/useConversation';
-import { AuthContextProvider } from '../context/AuthContext';
-import { lastSeenLabel } from '../utils/lastSeen';
+import ChatWindow from '../features/chat/components/ChatWindow';
+import useConversation from '../shared/store/useConversation';
+import { AuthContextProvider } from '../features/auth/AuthContext';
+import { lastSeenLabel } from '../shared/lib/lastSeen';
 
 // fake socket that remembers its listeners, so tests can "receive" events
 const handlers = {};
@@ -17,7 +17,7 @@ const socket = {
 let socketState = { socket, onlineUser: [], lastSeen: {} };
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock('../context/SocketContext', () => ({ useSocketContext: () => socketState }));
+vi.mock('../shared/realtime/SocketContext', () => ({ useSocketContext: () => socketState }));
 vi.mock('../assets/sound/notification.mp3', () => ({ default: '' }));
 
 Element.prototype.scrollIntoView = vi.fn();
@@ -32,7 +32,7 @@ const msg = (i, extra = {}) => ({
 
 const renderChat = () => {
     localStorage.setItem('chatapp', JSON.stringify(me));
-    return render(<AuthContextProvider><MessageContainer onBackUser={vi.fn()} /></AuthContextProvider>);
+    return render(<AuthContextProvider><ChatWindow onBackUser={vi.fn()} /></AuthContextProvider>);
 };
 
 beforeEach(() => {
