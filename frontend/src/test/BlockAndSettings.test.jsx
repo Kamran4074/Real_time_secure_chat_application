@@ -11,6 +11,7 @@ import Sidebar from '../features/contacts/components/Sidebar';
 import useConversation from '../shared/store/useConversation';
 import { AuthContextProvider } from '../features/auth/AuthContext';
 import { changePasswordSchema } from '../features/auth/schemas';
+import ConfirmProvider from '../shared/ui/confirm/ConfirmProvider';
 
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
@@ -21,13 +22,12 @@ const session = { _id: 'a1', fullname: 'Aisha Khan', username: 'aisha', token: '
 
 const withAuth = (ui) => {
     localStorage.setItem('chatapp', JSON.stringify(session));
-    return render(<AuthContextProvider><MemoryRouter>{ui}</MemoryRouter></AuthContextProvider>);
+    return render(<AuthContextProvider><MemoryRouter><ConfirmProvider>{ui}</ConfirmProvider></MemoryRouter></AuthContextProvider>);
 };
 
 beforeEach(() => {
     vi.resetAllMocks();
     useConversation.getState().reset();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
 });
 
 describe('blocked list in the store', () => {
@@ -48,6 +48,9 @@ describe('ContactPanel', () => {
         expect(screen.getByText('At work')).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole('button', { name: 'Block Bilal Ahmed' }));
+        const dialog = screen.getByRole('alertdialog', { name: 'Block Bilal Ahmed?' });
+        expect(axios.post).not.toHaveBeenCalled(); // nothing happens before confirming
+        await userEvent.click(within(dialog).getByRole('button', { name: 'Block' }));
         expect(axios.post).toHaveBeenCalledWith('/api/user/block/b1');
         expect(await screen.findByRole('button', { name: 'Unblock Bilal Ahmed' })).toBeInTheDocument();
         expect(useConversation.getState().blockedIds).toEqual(['b1']);
@@ -59,14 +62,16 @@ describe('ContactPanel', () => {
         withAuth(<ContactPanel user={bilal} online={false} onClose={vi.fn()} />);
 
         await userEvent.click(screen.getByRole('button', { name: 'Unblock Bilal Ahmed' }));
+        await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Unblock' }));
         expect(axios.delete).toHaveBeenCalledWith('/api/user/block/b1');
         await waitFor(() => expect(useConversation.getState().blockedIds).toEqual([]));
     });
 
     test('nothing happens when the confirm is cancelled', async () => {
-        window.confirm.mockReturnValue(false);
         withAuth(<ContactPanel user={bilal} online onClose={vi.fn()} />);
         await userEvent.click(screen.getByRole('button', { name: 'Block Bilal Ahmed' }));
+        await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
         expect(axios.post).not.toHaveBeenCalled();
     });
 });
@@ -139,6 +144,7 @@ describe('AccountSettings', () => {
         const onSignedOut = vi.fn();
         withAuth(<AccountSettings profile={profile} onSignedOut={onSignedOut} />);
         await userEvent.click(screen.getByRole('button', { name: 'Log out from all devices' }));
+        await userEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Log out everywhere' }));
 
         expect(axios.post).toHaveBeenCalledWith('/api/auth/logout-all');
         await waitFor(() => expect(onSignedOut).toHaveBeenCalled());

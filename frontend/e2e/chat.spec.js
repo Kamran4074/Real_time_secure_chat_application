@@ -85,8 +85,8 @@ test.describe('auth', () => {
         const user = makeUser('Cara');
         await register(page, user);
 
-        page.once('dialog', dialog => dialog.accept()); // "Do you want to log out?"
         await page.getByRole('button', { name: 'Log out' }).click();
+        await page.getByRole('alertdialog', { name: 'Log out?' }).getByRole('button', { name: 'Log out' }).click();
         await expect(page).toHaveURL(/\/login$/);
 
         await login(page, user);
@@ -152,7 +152,6 @@ test('blocking stops messages, and unblocking allows them again', async ({ brows
     const gusPage = await (await browser.newContext()).newPage();
     await register(fayPage, fay);
     await register(gusPage, gus);
-    fayPage.on('dialog', dialog => dialog.accept()); // "Block ...?" / "Unblock ...?"
 
     // Gus starts a chat, Fay opens it and blocks Gus from the contact info
     await openChatWith(gusPage, fay);
@@ -161,6 +160,7 @@ test('blocking stops messages, and unblocking allows them again', async ({ brows
     await fayPage.getByRole('button', { name: new RegExp(gus.username) }).click();
     await fayPage.getByRole('button', { name: /Contact info for/ }).click();
     await fayPage.getByRole('button', { name: `Block ${gus.fullname}` }).click();
+    await fayPage.getByRole('alertdialog').getByRole('button', { name: 'Block', exact: true }).click();
     await expect(fayPage.getByRole('button', { name: `Unblock ${gus.fullname}` })).toBeVisible();
     await fayPage.getByRole('button', { name: 'Close contact info' }).click();
 

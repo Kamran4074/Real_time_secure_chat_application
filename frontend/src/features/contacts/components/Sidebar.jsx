@@ -3,6 +3,7 @@ import { FiLogOut } from 'react-icons/fi';
 import { useAuth, useSignOut, logout } from '../../auth';
 import useConversation from '../../../shared/store/useConversation';
 import { useSocketContext } from '../../../shared/realtime/SocketContext';
+import { useConfirm } from '../../../shared/ui/confirm/confirmContext';
 import Logo from '../../../shared/ui/Logo';
 import Avatar from '../../../shared/ui/Avatar';
 import logger from '../../../shared/lib/logger';
@@ -15,6 +16,7 @@ import ChatList from './ChatList';
 const Sidebar = ({ onOpenProfile }) => {
     const { authUser } = useAuth();
     const signOut = useSignOut();
+    const confirm = useConfirm();
     const { onlineUser } = useSocketContext();
     const { selectedConversation, setSelectedConversation } = useConversation();
     const { chats, loading, unread, markRead } = useRecentChats();
@@ -27,7 +29,14 @@ const Sidebar = ({ onOpenProfile }) => {
     };
 
     const handleLogout = async () => {
-        if (!window.confirm("Do you want to log out?")) return;
+        const ok = await confirm({
+            title: 'Log out?',
+            message: "You'll need to sign in again to use ChatWave on this device.",
+            confirmLabel: 'Log out',
+            tone: 'danger',
+            icon: FiLogOut,
+        });
+        if (!ok) return;
         try {
             const data = await logout();
             toast.info(data?.message);

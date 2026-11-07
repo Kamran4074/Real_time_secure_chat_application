@@ -5,16 +5,25 @@ import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
 import { ChangePasswordForm, logoutEverywhere } from '../../auth';
 import { errorMessage } from '../../../shared/api/client';
+import { useConfirm } from '../../../shared/ui/confirm/confirmContext';
 
 // Password, linked sign-in methods and "log out everywhere"
 const AccountSettings = ({ profile, onSignedOut }) => {
     const [passwordOpen, setPasswordOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
+    const confirm = useConfirm();
     const hasPassword = profile?.hasPassword !== false;
     const linked = profile?.linkedAccounts || {};
 
     const handleLogoutEverywhere = async () => {
-        if (!window.confirm('Log out from all devices, including this one?')) return;
+        const ok = await confirm({
+            title: 'Log out from all devices?',
+            message: "This signs you out everywhere, including this device. You'll need to sign in again.",
+            confirmLabel: 'Log out everywhere',
+            tone: 'danger',
+            icon: FiLogOut,
+        });
+        if (!ok) return;
         setLoggingOut(true);
         try {
             const data = await logoutEverywhere();

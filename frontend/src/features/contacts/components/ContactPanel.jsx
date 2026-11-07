@@ -5,11 +5,13 @@ import useBlockToggle from '../hooks/useBlockToggle';
 import OnlineStatus from '../../../shared/ui/OnlineStatus';
 import Avatar from '../../../shared/ui/Avatar';
 import { Spinner } from '../../../shared/ui/Button';
+import { useConfirm } from '../../../shared/ui/confirm/confirmContext';
 
 // Contact info drawer over the chat (opened from the chat header)
 const ContactPanel = ({ user, online, lastSeen, onClose }) => {
     const blocked = useConversation((s) => s.blockedIds.includes(user._id));
     const { toggle, busy } = useBlockToggle();
+    const confirm = useConfirm();
     const name = user.fullname || user.username;
 
     useEffect(() => {
@@ -18,11 +20,21 @@ const ContactPanel = ({ user, online, lastSeen, onClose }) => {
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose]);
 
-    const handleBlock = () => {
-        const question = blocked
-            ? `Unblock ${name}? They will be able to message you again.`
-            : `Block ${name}? They won't be able to message you, see when you're online or find you in search.`;
-        if (window.confirm(question)) toggle(user, !blocked);
+    const handleBlock = async () => {
+        const ok = await confirm(blocked ? {
+            title: `Unblock ${name}?`,
+            message: 'They will be able to message you and see when you are online again.',
+            confirmLabel: 'Unblock',
+            tone: 'primary',
+            icon: FiUnlock,
+        } : {
+            title: `Block ${name}?`,
+            message: "They won't be able to message you, see when you're online or find you in search. They won't be told.",
+            confirmLabel: 'Block',
+            tone: 'danger',
+            icon: FiSlash,
+        });
+        if (ok) toggle(user, !blocked);
     };
 
     return (

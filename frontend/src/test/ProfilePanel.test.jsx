@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import ProfilePanel from '../features/settings/components/ProfilePanel';
 import { AuthContextProvider } from '../features/auth/AuthContext';
+import ConfirmProvider from '../shared/ui/confirm/ConfirmProvider';
 
 vi.mock('axios');
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -15,7 +16,7 @@ delete me.token;
 
 const renderPanel = (onClose = vi.fn()) => {
     localStorage.setItem('chatapp', JSON.stringify(session));
-    render(<AuthContextProvider><ProfilePanel onClose={onClose} /></AuthContextProvider>);
+    render(<AuthContextProvider><ConfirmProvider><ProfilePanel onClose={onClose} /></ConfirmProvider></AuthContextProvider>);
     return onClose;
 };
 

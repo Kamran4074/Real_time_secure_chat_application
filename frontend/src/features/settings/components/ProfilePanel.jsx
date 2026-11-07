@@ -8,6 +8,7 @@ import TextField from '../../../shared/ui/TextField';
 import Button, { Spinner } from '../../../shared/ui/Button';
 import { fieldErrors, serverFieldErrors } from '../../../shared/lib/formErrors';
 import { errorBody, errorMessage } from '../../../shared/api/client';
+import { useConfirm } from '../../../shared/ui/confirm/confirmContext';
 import { getMe, updateProfile, uploadProfilePhoto } from '../api';
 import { profileSchema, MAX_BIO_LENGTH } from '../schemas';
 import AccountSettings from './AccountSettings';
@@ -28,6 +29,7 @@ const ProfilePanel = ({ onClose, onSignedOut }) => {
     const [saving, setSaving] = useState(false);
     const [photoBusy, setPhotoBusy] = useState(false);
     const fileRef = useRef();
+    const confirm = useConfirm();
 
     // bio / email / upload availability are not in the login response, so load the full profile
     useEffect(() => {
@@ -109,7 +111,14 @@ const ProfilePanel = ({ onClose, onSignedOut }) => {
     };
 
     const removePhoto = async () => {
-        if (!window.confirm('Remove your profile photo?')) return;
+        const ok = await confirm({
+            title: 'Remove profile photo?',
+            message: 'Your photo will be replaced with a generated picture. You can upload a new one any time.',
+            confirmLabel: 'Remove',
+            tone: 'danger',
+            icon: FiTrash2,
+        });
+        if (!ok) return;
         setPhotoBusy(true);
         try {
             const data = await updateProfile({ profilepic: null });

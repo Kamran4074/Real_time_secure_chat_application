@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { AuthContextProvider } from './features/auth'
 import RealtimeProvider from './RealtimeProvider'
+import ConfirmProvider from './shared/ui/confirm/ConfirmProvider'
 import { configureApiClient } from './shared/api/client'
 
 configureApiClient()
@@ -12,7 +13,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <AuthContextProvider>
       <RealtimeProvider>
-        <App />
+        <ConfirmProvider>
+          <App />
+        </ConfirmProvider>
       </RealtimeProvider>
     </AuthContextProvider>
   </BrowserRouter>

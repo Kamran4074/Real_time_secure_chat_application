@@ -29,10 +29,14 @@ export default {
       keyframes: {
         'slide-in': { from: { transform: 'translateX(-100%)' }, to: { transform: 'translateX(0)' } },
         'slide-in-right': { from: { transform: 'translateX(100%)' }, to: { transform: 'translateX(0)' } },
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+        'pop-in': { from: { opacity: '0', transform: 'scale(.95) translateY(4px)' }, to: { opacity: '1', transform: 'scale(1) translateY(0)' } },
       },
       animation: {
         'slide-in': 'slide-in .2s ease-out',
         'slide-in-right': 'slide-in-right .2s ease-out',
+        'fade-in': 'fade-in .15s ease-out',
+        'pop-in': 'pop-in .18s ease-out',
       },
       boxShadow: {
         soft: '0 1px 2px rgba(15,23,42,.04), 0 12px 32px -8px rgba(15,23,42,.12)',
